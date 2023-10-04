@@ -1,0 +1,58 @@
+# примеры API-запросов
+
+@baseUrl = http://localhost:8000
+
+# регистрация клиента
+POST {{baseUrl}}/register/
+Content-Type: application/json
+
+{
+  "first_name": "Andrey",
+  "last_name": "Minin",
+  "username": "MininPO3fdfg",
+  "email": "Mininfg3fffdf@gmail.com",
+  "company": "MininCom",
+  "position": "Director"
+}
+
+###
+
+# регистрация магазина
+POST {{baseUrl}}/register/
+Content-Type: application/json
+
+{
+  "first_name": "Andrey",
+  "last_name": "Minin",
+  "username": "Minin123аf456787r8",
+  "email": "Mininа23467f7r@gmail.com",
+  "company": "MininCom",
+  "position": "Director",
+  "type": "shop"
+}
+
+###
+
+# аутентификация клиента
+POST {{baseUrl}}/login/
+Content-Type: application/json
+
+{
+  "email": "Mininа23467f7r@gmail.com",
+  "password": "rzMh4BW$g{"
+}
+
+###
+
+# проверка аутентификации клиента
+GET {{baseUrl}}/login/
+Content-Type: text/plain
+Cookie: csrftoken=hTC1JQhtuSRA7gGExwy7CyiD0A720ecv; expires=Wed, 02 Oct 2024 10:56:07 GMT; Max-Age=31449600; Path=/; SameSite=Lax,sessionid=26pcmc7breoxalfgdz9paly7wo8vmemx; expires=Wed, 18 Oct 2023 10:56:07 GMT; HttpOnly; Max-Age=1209600; Path=/; SameSite=Lax
+
+###
+
+# выход из аутентификации
+GET {{baseUrl}}/logout/
+Content-Type: application/json
+
+###
