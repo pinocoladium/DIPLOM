@@ -9,8 +9,8 @@ Content-Type: application/json
 {
   "first_name": "Andrey",
   "last_name": "Minin",
-  "username": "MininPO3fdfg",
-  "email": "Mininfg3fffdf@gmail.com",
+  "username": "Minin23",
+  "email": "Minin23@gmail.com",
   "company": "MininCom",
   "position": "Director"
 }
@@ -54,5 +54,15 @@ Cookie: csrftoken=hTC1JQhtuSRA7gGExwy7CyiD0A720ecv; expires=Wed, 02 Oct 2024 10:
 # выход из аутентификации
 GET {{baseUrl}}/logout/
 Content-Type: application/json
+
+###
+
+# проверка профиля пользователя
+GET {{baseUrl}}/profile/
+Content-Type: application/json
+
+{
+  "email": "Mininа23467f7r@gmail.com"
+}
 
 ###

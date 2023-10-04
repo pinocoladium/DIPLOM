@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.core.validators import URLValidator, EmailValidator
 from django.contrib.auth.password_validation import MinimumLengthValidator, UserAttributeSimilarityValidator, CommonPasswordValidator, NumericPasswordValidator
 from django.db import models
 from django_rest_passwordreset.tokens import get_token_generator
@@ -65,7 +66,8 @@ class Client(AbstractBaseUser, PermissionsMixin):
         error_messages={
             'unique': _("A user with that email already exists."),
         },
-        blank=False
+        blank=False,
+        validators=[EmailValidator]
     )
     company = models.CharField(verbose_name='Компания', max_length=40, blank=True)
     position = models.CharField(verbose_name='Должность', max_length=40, blank=True)
@@ -91,7 +93,7 @@ class Client(AbstractBaseUser, PermissionsMixin):
     
 class Shop(models.Model):
     name = models.CharField(max_length=50, verbose_name='Название', blank=False)
-    url = models.URLField(verbose_name='Ссылка', null=True, blank=True)
+    url = models.URLField(verbose_name='Ссылка', null=True, blank=True, validators=[URLValidator])
     client = models.OneToOneField(Client, verbose_name='Пользователь',
                                 blank=True, null=True,
                                 on_delete=models.CASCADE)
@@ -216,11 +218,6 @@ class Order(models.Model):
 
     def __str__(self):
         return str(self.dt)
-
-    # @property
-    # def sum(self):
-    #     return self.ordered_items.aggregate(total=Sum("quantity"))["total"]
-
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, verbose_name='Заказ', related_name='ordered_items', blank=True,
