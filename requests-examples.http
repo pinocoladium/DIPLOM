@@ -38,7 +38,7 @@ POST {{baseUrl}}/login/
 Content-Type: application/json
 
 {
-  "email": "Mininа23467f7r@gmail.com",
+  "email": "Minine@gmail.com",
   "password": "rzMh4BW$g{"
 }
 
@@ -62,7 +62,19 @@ GET {{baseUrl}}/profile/
 Content-Type: application/json
 
 {
-  "email": "Mininа23467f7r@gmail.com"
+  "email": "Minine@gmail.com"
+}
+
+###
+
+# изменения данных профиля
+POST {{baseUrl}}/profile/
+Content-Type: application/json
+
+{
+  "first_name": "AndreyAAA",
+  "last_name": "MininAAA",
+  "email": "Minine@gmail.com"
 }
 
 ###

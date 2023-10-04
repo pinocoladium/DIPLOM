@@ -64,9 +64,7 @@ class LoginClient(APIView):
         
     # аутентификация пользователя
     def post(self, request):
-        email = request.data["email"]
-        password = request.data["password"]
-        client = authenticate(request=request, email=email, password=password)
+        client = authenticate(request=request, email=request.data["email"], password=request.data["password"])
         if client is not None:
             login(request, client)
             return Response({'status': True, 'Info': 'authentication was successful'})
@@ -91,9 +89,7 @@ class ProfileClient(APIView):
         if not request.user.is_authenticated:
             return Response({'Status': False, 'Error': 'Log in required'}, status=403)
         if request.user.is_authenticated:
-            email = request.user.email
-            client = Client.objects.get(email=email)
-            serializers = ClientSerializer(client)
+            serializers = ClientSerializer(Client.objects.get(id=request.user.id))
             return Response(serializers.data)
         
     # изменение данных профиля пользователя
@@ -101,14 +97,16 @@ class ProfileClient(APIView):
         if not request.user.is_authenticated:
             return Response({'Status': False, 'Error': 'Log in required'}, status=403)
         if request.user.is_authenticated:
-            email = request.user.email
-            client = Client.objects.get(email=email)
-            user_serializer = ClientSerializer(request.user, data=request.data, partial=True)
-            if user_serializer.is_valid():
-                user_serializer.save()
+            client = Client.objects.get(id=request.user.id)
+            client_serializer = ClientSerializer(client, data=request.data, partial=True)
+            if client_serializer.is_valid():
+                if 'email' in request.data.keys():
+                    # new_user_registered.send(sender=self.__class__, user_id=user.id)
+                    pass
+                client_serializer.save()
                 return Response({'Status': True})
             else:
-                return Response({'Status': False, 'Errors': user_serializer.errors})
+                return Response({'Status': False, 'Errors': client_serializer.errors})
             
 
 # class PricelistUpdate(APIView):
