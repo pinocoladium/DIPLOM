@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from backend.models import Client, Contact, ProductInfo, ProductParameter
+from backend.models import Client, Contact, ProductInfo, ProductParameter, Shop
       
 class ContactsSerializer(serializers.ModelSerializer):
     class Meta:
@@ -51,4 +51,11 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Client
         fields = ('id', 'name', 'category', 'info', 'parameter',)
+        read_only_fields = ('id',)
+        
+class ShopSerializer(serializers.ModelSerializer):      
+    
+    class Meta:
+        model = Shop
+        fields = ('id', 'name', 'url', 'client', 'state')
         read_only_fields = ('id',)

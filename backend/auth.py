@@ -1,8 +1,15 @@
 from django.contrib.auth.backends import BaseBackend
 
+import string
+import random
 import bcrypt
 
 from backend.models import Client
+
+def generate_password():
+    characters = string.ascii_letters + string.digits + string.punctuation
+    password = ''.join(random.choice(characters) for _ in range(10))
+    return password
 
 def hash_password(password: str):
     return (bcrypt.hashpw(password.encode(), bcrypt.gensalt())).decode()

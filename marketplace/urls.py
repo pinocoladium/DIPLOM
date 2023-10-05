@@ -16,15 +16,15 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from backend.views import RegisterClient, LoginClient, logout_view, ProfileClient, state_change_view, Pricelist
+from backend.views import LoginClient, logout_view, ProfileClient, ProfileShop, state_change_view, Pricelist
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('register/', RegisterClient.as_view()),
     path('login/', LoginClient.as_view()),
     path('logout/', logout_view),
     path('profile/', ProfileClient.as_view()),
-    path('profile/state/', state_change_view),
-    path('pricelist/', Pricelist.as_view()),
-    path('pricelist/', include('backend.urls'))
+    path('profile/shop/', ProfileShop.as_view()),
+    path('profile/shop/state/', state_change_view),
+    path('profile/shop/pricelist/', Pricelist.as_view()),
+    path('products/', include('backend.urls'))
 ]
