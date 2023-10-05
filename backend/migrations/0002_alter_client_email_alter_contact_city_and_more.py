@@ -5,35 +5,45 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('backend', '0001_initial'),
+        ("backend", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='client',
-            name='email',
-            field=models.EmailField(error_messages={'unique': 'A user with that email already exists.'}, max_length=254, unique=True, validators=[django.core.validators.EmailValidator], verbose_name='email address'),
+            model_name="client",
+            name="email",
+            field=models.EmailField(
+                error_messages={"unique": "A user with that email already exists."},
+                max_length=254,
+                unique=True,
+                validators=[django.core.validators.EmailValidator],
+                verbose_name="email address",
+            ),
         ),
         migrations.AlterField(
-            model_name='contact',
-            name='city',
-            field=models.CharField(blank=True, max_length=50, verbose_name='Город'),
+            model_name="contact",
+            name="city",
+            field=models.CharField(blank=True, max_length=50, verbose_name="Город"),
         ),
         migrations.AlterField(
-            model_name='contact',
-            name='phone',
-            field=models.CharField(blank=True, max_length=20, verbose_name='Телефон'),
+            model_name="contact",
+            name="phone",
+            field=models.CharField(blank=True, max_length=20, verbose_name="Телефон"),
         ),
         migrations.AlterField(
-            model_name='contact',
-            name='street',
-            field=models.CharField(blank=True, max_length=100, verbose_name='Улица'),
+            model_name="contact",
+            name="street",
+            field=models.CharField(blank=True, max_length=100, verbose_name="Улица"),
         ),
         migrations.AlterField(
-            model_name='shop',
-            name='url',
-            field=models.URLField(blank=True, null=True, validators=[django.core.validators.URLValidator], verbose_name='Ссылка'),
+            model_name="shop",
+            name="url",
+            field=models.URLField(
+                blank=True,
+                null=True,
+                validators=[django.core.validators.URLValidator],
+                verbose_name="Ссылка",
+            ),
         ),
     ]
