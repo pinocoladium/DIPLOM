@@ -9,8 +9,8 @@ Content-Type: application/json
 {
   "first_name": "Andrey",
   "last_name": "Minin",
-  "username": "Minin23",
-  "email": "Minin23@gmail.com",
+  "username": "Minin234",
+  "email": "Minin234@gmail.com",
   "company": "MininCom",
   "position": "Director"
 }
@@ -24,8 +24,8 @@ Content-Type: application/json
 {
   "first_name": "Andrey",
   "last_name": "Minin",
-  "username": "Minin123аf456787r8",
-  "email": "Mininа23467f7r@gmail.com",
+  "username": "Minin1HHH",
+  "email": "MininHHH@gmail.com",
   "company": "MininCom",
   "position": "Director",
   "type": "shop"
@@ -76,5 +76,13 @@ Content-Type: application/json
   "last_name": "MininAAA",
   "email": "Minine@gmail.com"
 }
+
+###
+
+# изменения данных профиля
+GET {{baseUrl}}/profile/state/
+Content-Type: application/json
+
+
 
 ###

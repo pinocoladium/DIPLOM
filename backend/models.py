@@ -185,13 +185,13 @@ class Contact(models.Model):
                              related_name='contacts', blank=True,
                              on_delete=models.CASCADE)
 
-    city = models.CharField(max_length=50, verbose_name='Город')
-    street = models.CharField(max_length=100, verbose_name='Улица')
+    city = models.CharField(max_length=50, verbose_name='Город', blank=True)
+    street = models.CharField(max_length=100, verbose_name='Улица', blank=True)
     house = models.CharField(max_length=15, verbose_name='Дом', blank=True)
     structure = models.CharField(max_length=15, verbose_name='Корпус', blank=True)
     building = models.CharField(max_length=15, verbose_name='Строение', blank=True)
     apartment = models.CharField(max_length=15, verbose_name='Квартира', blank=True)
-    phone = models.CharField(max_length=20, verbose_name='Телефон')
+    phone = models.CharField(max_length=20, verbose_name='Телефон', blank=True)
 
     class Meta:
         verbose_name = 'Контакты пользователя'

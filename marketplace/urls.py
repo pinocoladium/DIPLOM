@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from backend.views import RegisterClient, LoginClient, logout_view, ProfileClient
+from backend.views import RegisterClient, LoginClient, logout_view, ProfileClient, state_change_view, Pricelist
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -24,4 +24,7 @@ urlpatterns = [
     path('login/', LoginClient.as_view()),
     path('logout/', logout_view),
     path('profile/', ProfileClient.as_view()),
+    path('profile/state/', state_change_view),
+    path('pricelist/', Pricelist.as_view()),
+    path('pricelist/', include('backend.urls'))
 ]
