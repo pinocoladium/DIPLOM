@@ -3,7 +3,7 @@
 @baseUrl = http://localhost:8000
 
 # регистрация клиента
-POST {{baseUrl}}/register/
+POST {{baseUrl}}/profile/
 Content-Type: application/json
 
 {
@@ -46,9 +46,7 @@ Content-Type: application/json
 
 # проверка аутентификации клиента
 GET {{baseUrl}}/login/
-Content-Type: text/plain
-Cookie: csrftoken=hTC1JQhtuSRA7gGExwy7CyiD0A720ecv; expires=Wed, 02 Oct 2024 10:56:07 GMT; Max-Age=31449600; Path=/; SameSite=Lax,sessionid=26pcmc7breoxalfgdz9paly7wo8vmemx; expires=Wed, 18 Oct 2023 10:56:07 GMT; HttpOnly; Max-Age=1209600; Path=/; SameSite=Lax
-
+Cookie: [csrftoken=rc5tO5LOjpiS7MdVek2AayIzEMDjK5Oh; expires=Sat, 05 Oct 2024 08:06:01 GMT; Max-Age=31449600; Path=/; SameSite=Lax,sessionid=fnbgqi330yj4p3sqi4c4e9zvmbo3oxvn; expires=Sat, 21 Oct 2023 08:06:01 GMT; HttpOnly; Max-Age=1209600; Path=/; SameSite=Lax]
 ###
 
 # выход из аутентификации

@@ -42,7 +42,7 @@ class ClientSerializer(serializers.ModelSerializer):
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Client
-        fields = ("id", "name", "shop")
+        fields = ("id", "id_category", "name", "shop")
         read_only_fields = ("id",)
 
 

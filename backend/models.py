@@ -134,8 +134,11 @@ class Shop(models.Model):
 
 
 class Category(models.Model):
+    id_category = models.IntegerField(
+        verbose_name="Номер категории", blank=True, default=0
+    )
     name = models.CharField(max_length=40, verbose_name="Название", blank=False)
-    shops = models.ManyToManyField(
+    shop = models.ManyToManyField(
         Shop, verbose_name="Магазины", related_name="categories", blank=True
     )
 
