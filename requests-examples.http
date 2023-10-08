@@ -9,26 +9,10 @@ Content-Type: application/json
 {
   "first_name": "Andrey",
   "last_name": "Minin",
-  "username": "Minin234",
-  "email": "Minin234@gmail.com",
+  "username": "Mininttaasd",
+  "email": "Mininttaasd@gmail.com",
   "company": "MininCom",
   "position": "Director"
-}
-
-###
-
-# регистрация магазина
-POST {{baseUrl}}/register/
-Content-Type: application/json
-
-{
-  "first_name": "Andrey",
-  "last_name": "Minin",
-  "username": "Minin1HHH",
-  "email": "MininHHH@gmail.com",
-  "company": "MininCom",
-  "position": "Director",
-  "type": "shop"
 }
 
 ###
@@ -38,15 +22,15 @@ POST {{baseUrl}}/login/
 Content-Type: application/json
 
 {
-  "email": "Minine@gmail.com",
-  "password": "rzMh4BW$g{"
+  "email": "Mininttaasd@gmail.com",
+  "password": "GAd,KXF>C&"
 }
 
 ###
 
 # проверка аутентификации клиента
 GET {{baseUrl}}/login/
-Cookie: [csrftoken=rc5tO5LOjpiS7MdVek2AayIzEMDjK5Oh; expires=Sat, 05 Oct 2024 08:06:01 GMT; Max-Age=31449600; Path=/; SameSite=Lax,sessionid=fnbgqi330yj4p3sqi4c4e9zvmbo3oxvn; expires=Sat, 21 Oct 2023 08:06:01 GMT; HttpOnly; Max-Age=1209600; Path=/; SameSite=Lax]
+Cookie: 
 ###
 
 # выход из аутентификации
@@ -77,10 +61,18 @@ Content-Type: application/json
 
 ###
 
-# изменения данных профиля
-GET {{baseUrl}}/profile/state/
+# регистрация магазина
+POST {{baseUrl}}/profile/shop/
 Content-Type: application/json
 
-
+{
+  "first_name": "Andrey",
+  "last_name": "Minin",
+  "username": "Minin1HHH",
+  "email": "MininHHH@gmail.com",
+  "company": "MininCom",
+  "position": "Director",
+  "type": "shop"
+}
 
 ###

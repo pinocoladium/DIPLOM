@@ -30,20 +30,18 @@ class ProfileClient(APIView):
 
     # зарегистрировать нового пользователя
     def post(self, request, *args, **kwargs):
-        data = request.data
-        if {"first_name", "last_name", "email"}.issubset(data):
-            if "type" in data.keys() and data["type"] == "shop":
+        if {"first_name", "last_name", "email"}.issubset(request.data):
+            if "type" in request.data.keys() and request.data["type"] == "shop":
                 return Response(
                     {"Status": False, "Errors": "создание магазина сейчас недоступно"}
                 )
-            if "password" not in data.keys():
-                data["password"] = generate_password()
-            password = data["password"]
-            data["password"] = hash_password(password)
-            client_serializer = ClientSerializer(data=data)
+            if "password" not in request.data.keys():
+                password = generate_password()
+            hashed_password = hash_password(password)
+            client_serializer = ClientSerializer(data=request.data)
             if client_serializer.is_valid():
                 client = client_serializer.save()
-                client.save()
+                Client.objects.filter(id=client.id).update(password=hashed_password)
                 # new_user_registered.send(sender=self.__class__, user_id=user.id)
                 return Response(
                     {"status": True, "email": client.email, "password": password}

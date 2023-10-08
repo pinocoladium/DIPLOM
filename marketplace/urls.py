@@ -29,4 +29,5 @@ urlpatterns = [
     path("profile/shop/state/", state_change_view),
     path("profile/shop/pricelist/", Pricelist.as_view()),
     path("products/", include("backend.urls")),
+    # path("products/{slug:slug}", include("backend.urls")),
 ]

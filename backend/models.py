@@ -64,7 +64,7 @@ class Client(AbstractBaseUser, PermissionsMixin):
     )
     password = models.CharField(
         _("password"),
-        max_length=20,
+        max_length=100,
         blank=True,
         validators=[
             MinimumLengthValidator,
