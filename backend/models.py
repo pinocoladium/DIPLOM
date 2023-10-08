@@ -20,9 +20,14 @@ STATE_CHOICES = (
     ("canceled", "Отменен"),
 )
 
-USER_TYPE_CHOICES = (
+CLIENT_TYPE_CHOICES = (
     ("shop", "Магазин"),
     ("buyer", "Покупатель"),
+)
+
+STATUS_CONFIRM_CHOICES = (
+    ("confirmed", "Подтвержден"),
+    ("unconfirmed", "Не подтвержден"),
 )
 
 
@@ -82,6 +87,12 @@ class Client(AbstractBaseUser, PermissionsMixin):
         blank=False,
         validators=[EmailValidator],
     )
+    status_email = models.CharField(
+        _("status client email confirmation"),
+        choices=STATUS_CONFIRM_CHOICES,
+        max_length=11,
+        default="unconfirmed",
+    )
     company = models.CharField(verbose_name="Компания", max_length=40, blank=True)
     position = models.CharField(verbose_name="Должность", max_length=40, blank=True)
     is_active = models.BooleanField(
@@ -94,7 +105,7 @@ class Client(AbstractBaseUser, PermissionsMixin):
     )
     type = models.CharField(
         verbose_name="Тип пользователя",
-        choices=USER_TYPE_CHOICES,
+        choices=CLIENT_TYPE_CHOICES,
         max_length=5,
         default="buyer",
     )

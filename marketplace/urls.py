@@ -17,14 +17,15 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
-from backend.views import (LoginClient, Pricelist, ProfileClient, ProfileShop,
-                           logout_view, state_change_view)
+from backend.views import (ConfirmEmail, LoginClient, Pricelist, ProfileClient,
+                           ProfileShop, logout_view, state_change_view)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("login/", LoginClient.as_view()),
     path("logout/", logout_view),
     path("profile/", ProfileClient.as_view()),
+    path("profile/email/", ConfirmEmail.as_view()),
     path("profile/shop/", ProfileShop.as_view()),
     path("profile/shop/state/", state_change_view),
     path("profile/shop/pricelist/", Pricelist.as_view()),

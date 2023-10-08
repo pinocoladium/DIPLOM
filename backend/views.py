@@ -7,8 +7,9 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
 from backend.auth import generate_password, hash_password
-from backend.models import (Category, Client, Parameter, Product, ProductInfo,
-                            ProductParameter, Shop)
+from backend.models import (Category, Client, ConfirmEmailToken, Parameter,
+                            Product, ProductInfo, ProductParameter, Shop)
+from backend.notifications import email_confirmation, reset_password_created
 from backend.serializers import (ClientSerializer, ProductSerializer,
                                  ShopSerializer)
 
@@ -35,6 +36,8 @@ class ProfileClient(APIView):
                 return Response(
                     {"Status": False, "Errors": "создание магазина сейчас недоступно"}
                 )
+            if "status_email" in request.data.keys():
+                request.data["status_email"] = "unconfirmed"
             if "password" not in request.data.keys():
                 password = generate_password()
             hashed_password = hash_password(password)
@@ -42,7 +45,7 @@ class ProfileClient(APIView):
             if client_serializer.is_valid():
                 client = client_serializer.save()
                 Client.objects.filter(id=client.id).update(password=hashed_password)
-                # new_user_registered.send(sender=self.__class__, user_id=user.id)
+                email_confirmation(client.email, client.id)
                 return Response(
                     {"status": True, "email": client.email, "password": password}
                 )
@@ -55,17 +58,53 @@ class ProfileClient(APIView):
     def patch(self, request):
         if request.user.is_authenticated:
             client = Client.objects.get(id=request.user.id)
+            if "email" in request.data.keys() and request.data["email"] != client.email:
+                email_confirmation(request.data["email"], client.id)
+                request.data["status_email"] = "unconfirmed"
+            if "status_email" in request.data.keys():
+                request.data["status_email"] = "unconfirmed"
             client_serializer = ClientSerializer(
                 client, data=request.data, partial=True
             )
             if client_serializer.is_valid():
-                if "email" in request.data.keys():
-                    # new_user_registered.send(sender=self.__class__, user_id=user.id)
-                    pass
                 client_serializer.save()
                 return Response({"Status": True})
             else:
                 return Response({"Status": False, "Errors": client_serializer.errors})
+        return Response({"Status": False, "Error": "Log in required"}, status=401)
+
+
+class ConfirmEmail(APIView):
+
+    """
+    Для подтверждения адреса электронной почты
+
+    """
+
+    # повторить отправку токена подтверждения на электронную почту
+    def get(self, request):
+        if request.user.is_authenticated:
+            if request.user.status_email == "unconfirmed":
+                email_confirmation(request.user.email, request.user.id)
+                return Response(
+                    {
+                        "Status": True,
+                        "Info": "Письмо отправлено на Вашу электронную почту",
+                    }
+                )
+            return Response({"Status": False, "Error": "Почта уже подтверждена"})
+        return Response({"Status": False, "Error": "Log in required"}, status=401)
+
+    # подтвердить токеном электронную почту
+    def post(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            if request.user.status_email == "unconfirmed":
+                if (
+                    request.data["token"]
+                    == ConfirmEmailToken.objects.get(client=request.user.id).key
+                ):
+                    return Response({"Status": True, "Info": "Почта подтверждена"})
+            return Response({"Status": False, "Error": "Почта уже подтверждена"})
         return Response({"Status": False, "Error": "Log in required"}, status=401)
 
 
@@ -91,21 +130,30 @@ class ProfileShop(APIView):
     # зарегистрировать новый магазин
     def post(self, request, *args, **kwargs):
         if request.user.is_authenticated:
-            if {"name"}.issubset(request.data):
+            if request.user.status_email == "confirmed":
                 if request.user.type != "shop":
-                    request.data["client"] = request.user.id
-                    shop_serializer = ShopSerializer(data=request.data)
-                    if shop_serializer.is_valid():
-                        shop = shop_serializer.save()
-                        shop.save()
+                    if {"name"}.issubset(request.data):
+                        request.data["client"] = request.user.id
+                        shop_serializer = ShopSerializer(data=request.data)
+                        if shop_serializer.is_valid():
+                            shop = shop_serializer.save()
+                            shop.save()
+                            return Response(
+                                {
+                                    "status": True,
+                                    "name shop": shop.name,
+                                    "state": shop.state,
+                                }
+                            )
                         return Response(
-                            {
-                                "status": True,
-                                "name shop": shop.name,
-                                "state": shop.state,
-                            }
+                            {"Status": False, "Errors": shop_serializer.errors}
                         )
-                    return Response({"Status": False, "Errors": shop_serializer.errors})
+                    return Response(
+                        {
+                            "Status": False,
+                            "Errors": "Не указаны все необходимые аргументы",
+                        }
+                    )
                 return Response(
                     {
                         "Status": False,
@@ -113,7 +161,10 @@ class ProfileShop(APIView):
                     }
                 )
             return Response(
-                {"Status": False, "Errors": "Не указаны все необходимые аргументы"}
+                {
+                    "Status": False,
+                    "Errors": "Необходимо сначала подтвердить адрес электронной почты",
+                }
             )
         return Response({"Status": False, "Error": "Log in required"}, status=401)
 
