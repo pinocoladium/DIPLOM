@@ -5,6 +5,7 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
+import datetime
 
 from backend.auth import generate_password, hash_password
 from backend.models import (Category, Client, ConfirmEmailToken, Parameter,
@@ -98,15 +99,27 @@ class ConfirmEmail(APIView):
     # подтвердить токеном электронную почту
     def post(self, request, *args, **kwargs):
         if request.user.is_authenticated:
-            if request.user.status_email == "unconfirmed":
-                if (
-                    request.data["token"]
-                    == ConfirmEmailToken.objects.get(client=request.user.id).key
-                ):
-                    return Response({"Status": True, "Info": "Почта подтверждена"})
-            return Response({"Status": False, "Error": "Почта уже подтверждена"})
+            if "token" in request.data.key() and request.data["token"]:
+                if request.user.status_email == "unconfirmed":
+                    token = ConfirmEmailToken.objects.get(client=request.user.id)
+                    if token.created_at + datetime.timedelta(hours=24) >= datetime.datetime.now():
+                        email_confirmation(request.user.email, request.user.id)
+                        return Response({"Status": False, "Error": "Устаревший токен. На электронную почту отправлен другой"})
+                    if (request.data["token"] == token.key):
+                        return Response({"Status": True, "Info": "Почта подтверждена"})
+                return Response({"Status": False, "Error": "Почта уже подтверждена"})
+            return Response({"Status": False, "Error": "Не указан токен в запросе"})
         return Response({"Status": False, "Error": "Log in required"}, status=401)
 
+# сброс пароля
+@api_view(["POST"])
+def reset_password_view(request):
+    if request.data:
+        if Client.objects.filter(**request.data):
+            reset_password_created(Client.objects.get(**request.data).id)
+            return Response({"Status": True, "Info": "Пароль для входа отправлен на электронную почту"})
+        return Response({"status": False, "Error": "Аккаунт не найден"})
+    return Response({"status": False, "Error": "Необходимо указать какие-нибудь данные о профиле (username, email)"})
 
 class ProfileShop(APIView):
 

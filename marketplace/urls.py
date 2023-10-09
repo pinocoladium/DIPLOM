@@ -18,7 +18,7 @@ from django.contrib import admin
 from django.urls import include, path
 
 from backend.views import (ConfirmEmail, LoginClient, Pricelist, ProfileClient,
-                           ProfileShop, logout_view, state_change_view)
+                           ProfileShop, logout_view, state_change_view, reset_password_view)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -26,6 +26,7 @@ urlpatterns = [
     path("logout/", logout_view),
     path("profile/", ProfileClient.as_view()),
     path("profile/email/", ConfirmEmail.as_view()),
+    path("profile/reset_password/", reset_password_view),
     path("profile/shop/", ProfileShop.as_view()),
     path("profile/shop/state/", state_change_view),
     path("profile/shop/pricelist/", Pricelist.as_view()),
