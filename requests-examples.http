@@ -9,10 +9,21 @@ Content-Type: application/json
 {
   "first_name": "Andrey",
   "last_name": "Minin",
-  "username": "Mininrml",
-  "email": "Mininttrll5@gmail.com",
+  "username": "Mininff5f4xxffj",
+  "email": "Mininfxfg4x5@gmail.com",
   "company": "MininCom",
   "position": "Director"
+}
+
+###
+
+# подтверждение почты
+POST {{baseUrl}}/profile/email/
+Content-Type: application/json
+
+{
+  "email": "Mininfxfg4x5@gmail.com",
+  "token": "ddb49849a3e101fb4a918c49d67f88549e8648"
 }
 
 ###
@@ -22,20 +33,20 @@ POST {{baseUrl}}/login/
 Content-Type: application/json
 
 {
-  "email": "Mininttaasd@gmail.com",
-  "password": "GAd,KXF>C&"
+  "email": "Mininfxfg4x5@gmail.com",
+  "password": "zZ~cGp9?5<"
 }
 
 ###
 
 # проверка аутентификации клиента
 GET {{baseUrl}}/login/
-Cookie: 
+Authorization: Token ae6667bf146d9a05802602662990c0ffbc15fffc
 ###
 
 # выход из аутентификации
 GET {{baseUrl}}/logout/
-Content-Type: application/json
+Authorization: Token 44e2160a92a88cbb2fc08217569e5ed667abd5ce
 
 ###
 

@@ -32,7 +32,6 @@ class ClientSerializer(serializers.ModelSerializer):
             "last_name",
             "username",
             "email",
-            "status_email",
             "company",
             "position",
             "contacts",

@@ -25,11 +25,6 @@ CLIENT_TYPE_CHOICES = (
     ("buyer", "Покупатель"),
 )
 
-STATUS_CONFIRM_CHOICES = (
-    ("confirmed", "Подтвержден"),
-    ("unconfirmed", "Не подтвержден"),
-)
-
 
 class Client(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = "email"
@@ -86,12 +81,6 @@ class Client(AbstractBaseUser, PermissionsMixin):
         },
         blank=False,
         validators=[EmailValidator],
-    )
-    status_email = models.CharField(
-        _("status client email confirmation"),
-        choices=STATUS_CONFIRM_CHOICES,
-        max_length=11,
-        default="unconfirmed",
     )
     company = models.CharField(verbose_name="Компания", max_length=40, blank=True)
     position = models.CharField(verbose_name="Должность", max_length=40, blank=True)
@@ -346,7 +335,7 @@ class ConfirmEmailToken(models.Model):
     )
 
     created_at = models.DateTimeField(
-        auto_now_add=True, verbose_name=_("When was this token generated")
+        auto_now_add=True, verbose_name=_("When was this token generated"),
     )
 
     key = models.CharField(_("Key"), max_length=64, db_index=True, unique=True)
@@ -357,4 +346,4 @@ class ConfirmEmailToken(models.Model):
         return super(ConfirmEmailToken, self).save(*args, **kwargs)
 
     def __str__(self):
-        return "Password reset token for user {client}".format(client=self.client)
+        return "Token for user {client}".format(client=self.client)

@@ -11,8 +11,7 @@ def email_confirmation(email, client_id):
     Отправить письмо для подтрердждения электронной почты
     
     """
-    
-    ConfirmEmailToken.objects.filter(client=client_id).delete
+    ConfirmEmailToken.objects.filter(client=client_id).delete()
 
     token = ConfirmEmailToken.objects.create(client=Client.objects.get(id=client_id))
     

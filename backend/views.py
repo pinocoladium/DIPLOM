@@ -5,6 +5,7 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.authtoken.models import Token
 import datetime
 
 from backend.auth import generate_password, hash_password
@@ -35,10 +36,10 @@ class ProfileClient(APIView):
         if {"first_name", "last_name", "email"}.issubset(request.data):
             if "type" in request.data.keys() and request.data["type"] == "shop":
                 return Response(
-                    {"Status": False, "Errors": "создание магазина сейчас недоступно"}
+                    {"Status": False, "Errors": "Создание магазина сейчас недоступно"}
                 )
-            if "status_email" in request.data.keys():
-                request.data["status_email"] = "unconfirmed"
+            if "is_active" in request.data.keys():
+                request.data["is_active"] = False
             if "password" not in request.data.keys():
                 password = generate_password()
             hashed_password = hash_password(password)
@@ -61,9 +62,9 @@ class ProfileClient(APIView):
             client = Client.objects.get(id=request.user.id)
             if "email" in request.data.keys() and request.data["email"] != client.email:
                 email_confirmation(request.data["email"], client.id)
-                request.data["status_email"] = "unconfirmed"
-            if "status_email" in request.data.keys():
-                request.data["status_email"] = "unconfirmed"
+                request.data["is_active"] = False
+            if "is_active" in request.data.keys():
+                request.data["is_active"] = False
             client_serializer = ClientSerializer(
                 client, data=request.data, partial=True
             )
@@ -85,7 +86,7 @@ class ConfirmEmail(APIView):
     # повторить отправку токена подтверждения на электронную почту
     def get(self, request):
         if request.user.is_authenticated:
-            if request.user.status_email == "unconfirmed":
+            if request.user.is_active == False:
                 email_confirmation(request.user.email, request.user.id)
                 return Response(
                     {
@@ -98,18 +99,20 @@ class ConfirmEmail(APIView):
 
     # подтвердить токеном электронную почту
     def post(self, request, *args, **kwargs):
-        if request.user.is_authenticated:
-            if "token" in request.data.key() and request.data["token"]:
-                if request.user.status_email == "unconfirmed":
-                    token = ConfirmEmailToken.objects.get(client=request.user.id)
-                    if token.created_at + datetime.timedelta(hours=24) >= datetime.datetime.now():
-                        email_confirmation(request.user.email, request.user.id)
-                        return Response({"Status": False, "Error": "Устаревший токен. На электронную почту отправлен другой"})
-                    if (request.data["token"] == token.key):
-                        return Response({"Status": True, "Info": "Почта подтверждена"})
-                return Response({"Status": False, "Error": "Почта уже подтверждена"})
-            return Response({"Status": False, "Error": "Не указан токен в запросе"})
-        return Response({"Status": False, "Error": "Log in required"}, status=401)
+        if "token" in request.data.keys() and request.data["token"]:
+            client = Client.objects.get(email=request.data["email"])
+            if client.is_active == False:
+                token = ConfirmEmailToken.objects.get(client=client)
+                if token.created_at + datetime.timedelta(hours=24) <= datetime.datetime.now():
+                    email_confirmation(request.data["email"], client.id)
+                    return Response({"Status": False, "Error": "Устаревший токен. На электронную почту отправлен другой"})
+                if (request.data["token"] == token.key):
+                    Client.objects.filter(id=client.id).update(is_active=True)
+                    return Response({"Status": True, "Info": "Почта подтверждена"})
+                return Response({"Status": False, "Error": "Указанные неверные данные"})
+            return Response({"Status": False, "Error": "Почта уже подтверждена"})
+        return Response({"Status": False, "Error": "Не указан данные в запросе"})
+
 
 # сброс пароля
 @api_view(["POST"])
@@ -120,6 +123,7 @@ def reset_password_view(request):
             return Response({"Status": True, "Info": "Пароль для входа отправлен на электронную почту"})
         return Response({"status": False, "Error": "Аккаунт не найден"})
     return Response({"status": False, "Error": "Необходимо указать какие-нибудь данные о профиле (username, email)"})
+
 
 class ProfileShop(APIView):
 
@@ -143,7 +147,7 @@ class ProfileShop(APIView):
     # зарегистрировать новый магазин
     def post(self, request, *args, **kwargs):
         if request.user.is_authenticated:
-            if request.user.status_email == "confirmed":
+            if request.user.is_active:
                 if request.user.type != "shop":
                     if {"name"}.issubset(request.data):
                         request.data["client"] = request.user.id
@@ -206,8 +210,8 @@ class LoginClient(APIView):
     # узнать статус аутентификации
     def get(self, request):
         if request.user.is_authenticated:
-            return Response({"Status": True, "Info": "you are already authenticated"})
-        return Response({"Status": False, "Error": "Log in required"}, status=401)
+            return Response({"Status": True, "Info": "Вы прошли аутентификацию"})
+        return Response({"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401)
 
     # аутентификация пользователя
     def post(self, request):
@@ -217,16 +221,18 @@ class LoginClient(APIView):
             password=request.data["password"],
         )
         if client is not None:
-            login(request, client)
-            return Response({"status": True, "Info": "authentication was successful"})
-        return Response({"status": False, "Error": "wrong login or password"})
+            token = Token.objects.get_or_create(user=client)
+            return Response({'Status': True,"Info": "Аутентификация прошла успешно", 'Token': str(token)})
+        return Response({"status": False, "Error": "Неверно введен логин или пароль"})
 
 
 # деаутентификация
 @api_view(["GET"])
 def logout_view(request):
-    logout(request)
-    return Response({"status": True, "info": "you are not authenticated"})
+    if request.user.is_authenticated:
+        Token.objects.filter(user=Client.objects.get(id=request.user.id)).delete()
+        return Response({"status": True, "info": "Деаутентификация прошла успешно"})
+    return Response({"status": False, "Error": "Вы не проходили аутентификацию"})
 
 
 # изменения статуса приема заказов (только для продавцов)
