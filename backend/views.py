@@ -6,14 +6,16 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.authtoken.models import Token
+from django.db import IntegrityError
+from django.db.models import Q, Sum, F
 import datetime
 
 from backend.auth import generate_password, hash_password, check_password
 from backend.models import (Category, Client, ConfirmEmailToken, Parameter,
-                            Product, ProductInfo, ProductParameter, Shop, Contact)
+                            Product, ProductInfo, ProductParameter, Shop, Contact, Order)
 from backend.notifications import email_confirmation, reset_password_created, notific_delete_profile
-from backend.serializers import (ClientSerializer, ProductSerializer,
-                                 ShopSerializer, ContactsSerializer)
+from backend.serializers import (ClientSerializer, ProductInfoSerializer,
+                                 ShopSerializer, ContactsSerializer, CategorySerializer, OrderSerializer, OrderItemSerializer)
 
 
 class ProfileClient(APIView):
@@ -24,14 +26,14 @@ class ProfileClient(APIView):
     """
 
     # узнать данные профиля пользователя
-    def get(self, request):
+    def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_authenticated:
                 return Response(ClientSerializer(Client.objects.get(id=request.user.id)).data)
         return Response({"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401)
 
     # зарегистрировать нового пользователя
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
         if {"first_name", "last_name", "email"}.issubset(request.data):
             if "type" in request.data.keys() and request.data["type"] == "shop":
                 return Response(
@@ -56,14 +58,16 @@ class ProfileClient(APIView):
         )
 
     # измененить данные профиля пользователя
-    def patch(self, request):
+    def patch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             client = Client.objects.get(id=request.user.id)
             if "email" in request.data.keys() and request.data["email"] != client.email:
                 email_confirmation(request.data["email"], client.id)
                 request.data["is_active"] = False
             if "is_active" in request.data.keys():
-                request.data["is_active"] = False
+                request.data["is_active"] = client.is_active
+            if "type" in request.data.keys():
+                request.data["type"] = client.type    
             client_serializer = ClientSerializer(
                 client, data=request.data, partial=True
             )
@@ -75,7 +79,7 @@ class ProfileClient(APIView):
         return Response({"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401)
 
     # удалить профиль
-    def delete(self, request):
+    def delete(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
                 if check_password(request.data["password"], request.user.password):
@@ -94,7 +98,7 @@ class ConfirmEmail(APIView):
     """
 
     # повторить отправку токена подтверждения на электронную почту
-    def get(self, request):
+    def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == False:
                 email_confirmation(request.user.email, request.user.id)
@@ -108,7 +112,7 @@ class ConfirmEmail(APIView):
         return Response({"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401)
 
     # подтвердить токеном электронную почту
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
         if "token" in request.data.keys() and request.data["token"]:
             client = Client.objects.get(email=request.data["email"])
             if client.is_active == False:
@@ -132,7 +136,7 @@ class ProfilContacts(APIView):
     """
 
     # узнать контакты профиля
-    def get(self, request):
+    def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
                 return Response(ContactsSerializer(Contact.objects.get(client=request.user.id)).data)
@@ -140,7 +144,7 @@ class ProfilContacts(APIView):
         return Response({"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401)
     
     # указать контакты профиля
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
                 if {"city", "street", "house", "phone"}.issubset(request.data):
@@ -153,7 +157,7 @@ class ProfilContacts(APIView):
         return Response({"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401)
 
     # внести изменения в контакты профиля
-    def patch(self, request):
+    def patch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
                 if Contact.objects.filter(client=request.user.id):
@@ -166,7 +170,7 @@ class ProfilContacts(APIView):
         return Response({"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401)
 
     # удалить контакты профиля
-    def delete(self, request):
+    def delete(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
                 Contact.objects.filter(client=request.user.id).delete()
@@ -177,7 +181,7 @@ class ProfilContacts(APIView):
 
 # сброс пароля
 @api_view(["POST"])
-def reset_password_view(request):
+def reset_password_view(request, *args, **kwargs):
     if request.data:
         if Client.objects.filter(**request.data):
             reset_password_created(Client.objects.get(**request.data).id)
@@ -194,13 +198,13 @@ class LoginClient(APIView):
     """
 
     # узнать статус аутентификации
-    def get(self, request):
+    def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             return Response({"Status": True, "Info": "Вы прошли аутентификацию"})
         return Response({"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401)
 
     # аутентификация пользователя
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
         client = authenticate(
             request=request,
             email=request.data["email"],
@@ -214,7 +218,7 @@ class LoginClient(APIView):
 
 # деаутентификация
 @api_view(["GET"])
-def logout_view(request):
+def logout_view(request, *args, **kwargs):
     if request.user.is_authenticated:
         Token.objects.filter(user=Client.objects.get(id=request.user.id)).delete()
         return Response({"status": True, "info": "Деаутентификация прошла успешно"})
@@ -229,7 +233,7 @@ class ProfileShop(APIView):
     """
 
     # узнать данные профиля магазина
-    def get(self, request):
+    def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.type == "shop":
                 if request.user.is_authenticated:
@@ -241,7 +245,7 @@ class ProfileShop(APIView):
         return Response({"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401)
 
     # зарегистрировать новый магазин
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active:
                 if request.user.type == "buyer":
@@ -282,7 +286,7 @@ class ProfileShop(APIView):
         return Response({"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401)
 
     # измененить данные профиля магазина
-    def patch(self, request):
+    def patch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.type == "shop":
                 if request.user.is_active:
@@ -297,7 +301,7 @@ class ProfileShop(APIView):
         return Response({"Status": False, "Error": "Нет аутентификации"}, status=401)
     
     # удалить профиль магазина
-    def delete(self, request):
+    def delete(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.type == "shop":
                 if request.user.is_active:
@@ -313,24 +317,22 @@ class ProfileShop(APIView):
 
 # изменения статуса приема заказов (только для продавцов)
 @api_view(["GET"])
-def state_change_view(request):
+def state_change_view(request, *args, **kwargs):
     if request.user.is_authenticated:
         if request.user.type == "shop":
             if request.user.is_active == True:
                 shop = Shop.objects.get(client=request.user.id)
                 if shop.state:
                     shop.update(state=False)
-                    state = Shop.objects.get(client=request.user.id).state
-                    return Response({"Status": True, "State": state})
+                    return Response({"Status": True, "State": Shop.objects.get(client=request.user.id).state})
                 shop.update(state=True)
-                state = Client.objects.get(client=request.user.id).state
-                return Response({"Status": True, "State": state})
+                return Response({"Status": True, "State": Client.objects.get(client=request.user.id).state})
             return Response({"Status": False, "Error": "Необходимо сначала подтвердить адрес электронной почты"})
         return Response({"Status": False, "Error": "Только для магазинов"})
     return Response({"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401)
 
 
-class Pricelist(APIView):
+class ShopPricelist(APIView):
 
     """
     Для просмотра собственного и загрузки списка товаров (только для продавцов)
@@ -338,22 +340,23 @@ class Pricelist(APIView):
     """
 
     # просмотр списка выставленных товаров (только для продавцов)
-    def get(self, request):
+    def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.type == "shop":
                 shop = Shop.objects.get(client=request.user.id)
                 product_all = ProductInfo.objects.filter(shop=shop)
-                product_list = []
-                for el in product_all:
-                    product_list.append(ProductSerializer(el))
-                Response(product_list)
+                serializers = ProductInfoSerializer(product_all, many=True)
+                # product_list = []
+                # for el in product_all:
+                #     product_list.append(ProductInfoSerializer(el))
+                Response(serializers.data)
             return Response(
                 {"Status": False, "Error": "Только для магазинов"}, status=403
             )
         return Response({"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401)
 
     # загрузка списка товаров из формата json (только для продавцов)
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.type == "shop":
                 if request.user.is_active == True:
@@ -391,7 +394,7 @@ class Pricelist(APIView):
                                 )
                         return Response({"Status": True, "Info": "Список товаров обновлен"})
                     return Response(
-                        {"Status": False, "Errors": "Не указаны все необходимые аргументы"}
+                        {"Status": False, "Errors": "Не указаны все необходимые данные"}
                     )
                 return Response({"Status": False, "Error": "Необходимо сначала подтвердить адрес электронной почты"})
             return Response(
@@ -400,7 +403,7 @@ class Pricelist(APIView):
         return Response({"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401)
     
     # удаление списка выставленных товаров (только для продавцов)
-    def get(self, request):
+    def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.type == "shop":
                 if request.user.is_active == True:
@@ -418,12 +421,174 @@ class Pricelist(APIView):
 
 # просмотр всех товаров на сервисе
 class ProductsViewSet(ModelViewSet):
-    queryset = Product.objects.all()
-    serializer_class = ProductSerializer
+    queryset = ProductInfo.objects.all()
+    serializer_class = ProductInfoSerializer
     filter_backends = [
         SearchFilter,
     ]
-    search_fields = ["name", "info__model"]
+    search_fields = ["model", "product", "product_parameters"]
+    pagination_class = LimitOffsetPagination
+
+# просмотр всех категорий
+class CategoryView(ModelViewSet):
+    
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    search_fields = ["name", "state"]
+    pagination_class = LimitOffsetPagination
+
+# просмотр всех магазинов
+class ShopView(ModelViewSet):
+    
+    queryset = Shop.objects.filter(state=True)
+    serializer_class = ShopSerializer
+    search_fields = ["name", "state"]
     pagination_class = LimitOffsetPagination
 
 
+class BasketView(APIView):
+    """
+    Класс для работы с корзиной пользователя
+    """
+
+    # получить содержимое корзины
+    def get(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            if request.user.is_active == True:
+                basket = Order.objects.filter(
+                    client=request.user.id, state='basket').prefetch_related(
+                    'ordered_items__product_info__product__category',
+                    'ordered_items__product_info__product_parameters__parameter').annotate(
+                    total_sum=Sum(F('ordered_items__quantity') * F('ordered_items__product_info__price'))).distinct()
+                serializer = OrderSerializer(basket, many=True)
+                return Response(serializer.data)
+            return Response({"Status": False, "Error": "Необходимо сначала подтвердить адрес электронной почты"})
+        return Response({'Status': False, 'Error': 'Вы не прошли аутентификацию'}, status=401)
+
+    # # добавить в содержимое корзины
+    def post(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            if request.user.is_active == True:
+                if items in request.data["items"]:
+                    objects_created = 0
+                    basket = Order.objects.get_or_create(client=request.user.id, state='basket')
+                    for items in request.data["items"]:
+                        if ["product_info", "quantity"] in items.keys():
+                            items.update({'order': basket.id})
+                            serializer = OrderItemSerializer(data=items)
+                            if serializer.is_valid():
+                                try:
+                                    serializer.save()
+                                except IntegrityError as error:
+                                    return Response({'Status': False, 'Errors': str(error)})
+                                else:
+                                    objects_created += 1
+                                    return Response({'Status': True, "Info": f"Создано объектов - {objects_created}"})
+                            return Response({'Status': False, 'Errors': serializer.errors})
+                        return Response({'Status': False, 'Errors': 'Не указаны все необходимые данные'})
+                return Response({'Status': False, 'Errors': 'Не указаны все необходимые данные'})
+            return Response({"Status": False, "Error": "Необходимо сначала подтвердить адрес электронной почты"})
+        return Response({'Status': False, 'Error': 'Вы не прошли аутентификацию'}, status=401)
+
+    # удалить товары из корзины
+    # def delete(self, request, *args, **kwargs):
+    #     if request.user.is_authenticated:
+    #         items_sting = request.data.get('items')
+    #         if items_sting:
+    #             items_list = items_sting.split(',')
+    #             basket, _ = Order.objects.get_or_create(user_id=request.user.id, state='basket')
+    #             query = Q()
+    #             objects_deleted = False
+    #             for order_item_id in items_list:
+    #                 if order_item_id.isdigit():
+    #                     query = query | Q(order_id=basket.id, id=order_item_id)
+    #                     objects_deleted = True
+    #             if objects_deleted:
+    #                 deleted_count = OrderItem.objects.filter(query).delete()[0]
+    #                 return Response({'Status': True, 'Удалено объектов': deleted_count})
+    #         return Response({'Status': False, 'Errors': 'Не указаны все необходимые данные'})
+    #     return Response({'Status': False, 'Error': 'Вы не прошли аутентификацию'}, status=401)
+    
+    # # добавить позиции в корзину
+    # def put(self, request, *args, **kwargs):
+    #     if not request.user.is_authenticated:
+    #         return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
+
+    #     items_sting = request.data.get('items')
+    #     if items_sting:
+    #         try:
+    #             items_dict = load_json(items_sting)
+    #         except ValueError:
+    #             return JsonResponse({'Status': False, 'Errors': 'Неверный формат запроса'})
+    #         else:
+    #             basket, _ = Order.objects.get_or_create(user_id=request.user.id, state='basket')
+    #             objects_updated = 0
+    #             for order_item in items_dict:
+    #                 if type(order_item['id']) == int and type(order_item['quantity']) == int:
+    #                     objects_updated += OrderItem.objects.filter(order_id=basket.id, id=order_item['id']).update(
+    #                         quantity=order_item['quantity'])
+
+    #             return JsonResponse({'Status': True, 'Обновлено объектов': objects_updated})
+    #     return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
+    
+    
+    # class OrderView(APIView):
+    # """
+    # Класс для получения и размешения заказов пользователями
+    # """
+
+    # # получить мои заказы
+    # def get(self, request, *args, **kwargs):
+    #     if not request.user.is_authenticated:
+    #         return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
+    #     order = Order.objects.filter(
+    #         user_id=request.user.id).exclude(state='basket').prefetch_related(
+    #         'ordered_items__product_info__product__category',
+    #         'ordered_items__product_info__product_parameters__parameter').select_related('contact').annotate(
+    #         total_sum=Sum(F('ordered_items__quantity') * F('ordered_items__product_info__price'))).distinct()
+
+    #     serializer = OrderSerializer(order, many=True)
+    #     return Response(serializer.data)
+
+    # # разместить заказ из корзины
+    # def post(self, request, *args, **kwargs):
+    #     if not request.user.is_authenticated:
+    #         return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
+
+    #     if {'id', 'contact'}.issubset(request.data):
+    #         if request.data['id'].isdigit():
+    #             try:
+    #                 is_updated = Order.objects.filter(
+    #                     user_id=request.user.id, id=request.data['id']).update(
+    #                     contact_id=request.data['contact'],
+    #                     state='new')
+    #             except IntegrityError as error:
+    #                 print(error)
+    #                 return JsonResponse({'Status': False, 'Errors': 'Неправильно указаны аргументы'})
+    #             else:
+    #                 if is_updated:
+    #                     new_order.send(sender=self.__class__, user_id=request.user.id)
+    #                     return JsonResponse({'Status': True})
+
+    #     return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
+    
+    
+    # class PartnerOrders(APIView):
+    # """
+    # Класс для получения заказов поставщиками
+    # """
+    # def get(self, request, *args, **kwargs):
+    #     if not request.user.is_authenticated:
+    #         return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
+
+    #     if request.user.type != 'shop':
+    #         return JsonResponse({'Status': False, 'Error': 'Только для магазинов'}, status=403)
+
+    #     order = Order.objects.filter(
+    #         ordered_items__product_info__shop__user_id=request.user.id).exclude(state='basket').prefetch_related(
+    #         'ordered_items__product_info__product__category',
+    #         'ordered_items__product_info__product_parameters__parameter').select_related('contact').annotate(
+    #         total_sum=Sum(F('ordered_items__quantity') * F('ordered_items__product_info__price'))).distinct()
+
+    #     serializer = OrderSerializer(order, many=True)
+    #     return Response(serializer.data)

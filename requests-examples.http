@@ -87,3 +87,5 @@ Content-Type: application/json
 }
 
 ###
+
+{"items": [{"product_info": 25, "quantity": 13}, {"product_info": 26, "quantity": 12,}]}

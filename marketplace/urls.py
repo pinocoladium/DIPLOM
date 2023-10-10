@@ -17,8 +17,8 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
-from backend.views import (ConfirmEmail, LoginClient, Pricelist, ProfileClient,
-                           ProfileShop, logout_view, state_change_view, reset_password_view, ProfilContacts)
+from backend.views import (ConfirmEmail, LoginClient, ShopPricelist, ProfileClient,
+                           ProfileShop, logout_view, state_change_view, reset_password_view, ProfilContacts, BasketView)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -28,9 +28,10 @@ urlpatterns = [
     path("profile/email/", ConfirmEmail.as_view()),
     path("profile/contacts/", ProfilContacts.as_view()),
     path("profile/reset_password/", reset_password_view),
+    path("profile/basket/", BasketView.as_view()),
     path("profile/shop/", ProfileShop.as_view()),
     path("profile/shop/state/", state_change_view),
-    path("profile/shop/pricelist/", Pricelist.as_view()),
+    path("profile/shop/pricelist/", ShopPricelist.as_view()),
     path("products/", include("backend.urls")),
     # path("products/{slug:slug}", include("backend.urls")),
 ]
