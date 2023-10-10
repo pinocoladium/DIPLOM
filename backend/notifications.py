@@ -26,7 +26,6 @@ def email_confirmation(email, client_id):
     print(f"ТОКЕН ДЛЯ ПОДТВЕРЖДЕНИЯ АККАУНТА {token.client}: {token.key}")
     
 
-
 def reset_password_created(client_id):
     """
     Отправить письмо с новым паролем для аккаунта и зменить его в базе данных
@@ -45,6 +44,23 @@ def reset_password_created(client_id):
     # )
     
     print(f"НОВЫЙ ПАРОЛЬ ОТ ВАШЕГО АККАУНТА {client.data}: {new_password}")
+
+
+def notific_delete_profile(email, username):
+    """
+    Отправить уведомление об удалении профиля
+
+    """
+    
+    # send_mail(
+    #     "УДАЛЕНИЕ ПРОФИЛЯ",
+    #     f"УВЕДОМЛЯЕМ ВАС ОБ УДАЛЕНИИ ВАШЕГО АККАУНТА {username}",
+    #     "from@example.com",
+    #     [f"{email}"],
+    #     fail_silently=False,
+    # )
+    
+    print(f"УВЕДОМЛЯЕМ ВАС ОБ УДАЛЕНИИ ВАШЕГО АККАУНТА {username}")
 
 
 # def new_order_signal(user_id, **kwargs):

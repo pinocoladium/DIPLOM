@@ -8,12 +8,12 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.authtoken.models import Token
 import datetime
 
-from backend.auth import generate_password, hash_password
+from backend.auth import generate_password, hash_password, check_password
 from backend.models import (Category, Client, ConfirmEmailToken, Parameter,
-                            Product, ProductInfo, ProductParameter, Shop)
-from backend.notifications import email_confirmation, reset_password_created
+                            Product, ProductInfo, ProductParameter, Shop, Contact)
+from backend.notifications import email_confirmation, reset_password_created, notific_delete_profile
 from backend.serializers import (ClientSerializer, ProductSerializer,
-                                 ShopSerializer)
+                                 ShopSerializer, ContactsSerializer)
 
 
 class ProfileClient(APIView):
@@ -27,9 +27,8 @@ class ProfileClient(APIView):
     def get(self, request):
         if request.user.is_authenticated:
             if request.user.is_authenticated:
-                serializers = ClientSerializer(Client.objects.get(id=request.user.id))
-                return Response(serializers.data)
-        return Response({"Status": False, "Error": "Log in required"}, status=401)
+                return Response(ClientSerializer(Client.objects.get(id=request.user.id)).data)
+        return Response({"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401)
 
     # зарегистрировать нового пользователя
     def post(self, request, *args, **kwargs):
@@ -53,7 +52,7 @@ class ProfileClient(APIView):
                 )
             return Response({"Status": False, "Errors": client_serializer.errors})
         return Response(
-            {"Status": False, "Errors": "Не указаны все необходимые аргументы"}
+            {"Status": False, "Errors": "Не указаны все необходимые данные"}
         )
 
     # измененить данные профиля пользователя
@@ -70,11 +69,22 @@ class ProfileClient(APIView):
             )
             if client_serializer.is_valid():
                 client_serializer.save()
-                return Response({"Status": True})
+                return Response({"Status": True, "info": "Изменения внесены"})
             else:
                 return Response({"Status": False, "Errors": client_serializer.errors})
-        return Response({"Status": False, "Error": "Log in required"}, status=401)
+        return Response({"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401)
 
+    # удалить профиль
+    def delete(self, request):
+        if request.user.is_authenticated:
+            if request.user.is_active == True:
+                if check_password(request.data["password"], request.user.password):
+                    notific_delete_profile(request.user.email, request.user.username)
+                    Client.objects.filter(id=request.user.id).delete()
+                    return Response({"Status": True, "info": "Профиль удален"})
+                return Response({"Status": False, "Error": "Неверный пароль"})
+            return Response({"Status": False, "Error": "Необходимо сначала подтвердить адрес электронной почты"})
+        return Response({"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401)
 
 class ConfirmEmail(APIView):
 
@@ -95,10 +105,10 @@ class ConfirmEmail(APIView):
                     }
                 )
             return Response({"Status": False, "Error": "Почта уже подтверждена"})
-        return Response({"Status": False, "Error": "Log in required"}, status=401)
+        return Response({"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401)
 
     # подтвердить токеном электронную почту
-    def post(self, request, *args, **kwargs):
+    def post(self, request):
         if "token" in request.data.keys() and request.data["token"]:
             client = Client.objects.get(email=request.data["email"])
             if client.is_active == False:
@@ -112,6 +122,57 @@ class ConfirmEmail(APIView):
                 return Response({"Status": False, "Error": "Указанные неверные данные"})
             return Response({"Status": False, "Error": "Почта уже подтверждена"})
         return Response({"Status": False, "Error": "Не указан данные в запросе"})
+
+
+class ProfilContacts(APIView):
+
+    """
+    Для работы с контактами профиля
+
+    """
+
+    # узнать контакты профиля
+    def get(self, request):
+        if request.user.is_authenticated:
+            if request.user.is_active == True:
+                return Response(ContactsSerializer(Contact.objects.get(client=request.user.id)).data)
+            return Response({"Status": False, "Error": "Необходимо сначала подтвердить адрес электронной почты"})
+        return Response({"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401)
+    
+    # указать контакты профиля
+    def post(self, request):
+        if request.user.is_authenticated:
+            if request.user.is_active == True:
+                if {"city", "street", "house", "phone"}.issubset(request.data):
+                    contacts_serializers = ContactsSerializer(request.data)
+                    if contacts_serializers.is_valid():
+                        contacts_serializers.save()
+                        return Response({"Status": True, "Info": "Данные внесены"})
+                return Response({"Status": False, "Errors": "Не указаны все необходимые данные"})
+            return Response({"Status": False, "Error": "Необходимо сначала подтвердить адрес электронной почты"})
+        return Response({"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401)
+
+    # внести изменения в контакты профиля
+    def patch(self, request):
+        if request.user.is_authenticated:
+            if request.user.is_active == True:
+                if Contact.objects.filter(client=request.user.id):
+                    contacts_serializers = ContactsSerializer(Contact, data=request.data, partial=True)
+                    if contacts_serializers.is_valid():
+                        contacts_serializers.save()
+                        return Response({"Status": True, "Info": "Изменения внесены"})
+                return Response({"Status": False, "Error": "Контакты профиля не найдены"})
+            return Response({"Status": False, "Error": "Необходимо сначала подтвердить адрес электронной почты"})
+        return Response({"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401)
+
+    # удалить контакты профиля
+    def delete(self, request):
+        if request.user.is_authenticated:
+            if request.user.is_active == True:
+                Contact.objects.filter(client=request.user.id).delete()
+                return Response({"Status": True, "Info": "Контакты профиля удалены"})
+            return Response({"Status": False, "Error": "Необходимо сначала подтвердить адрес электронной почты"})
+        return Response({"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401)
 
 
 # сброс пароля
@@ -142,7 +203,7 @@ class ProfileShop(APIView):
                     )
                     return Response(serializers.data)
             return Response({"Status": False, "Error": "Только для магазинов"})
-        return Response({"Status": False, "Error": "Log in required"}, status=401)
+        return Response({"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401)
 
     # зарегистрировать новый магазин
     def post(self, request, *args, **kwargs):
@@ -183,7 +244,7 @@ class ProfileShop(APIView):
                     "Errors": "Необходимо сначала подтвердить адрес электронной почты",
                 }
             )
-        return Response({"Status": False, "Error": "Log in required"}, status=401)
+        return Response({"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401)
 
     # измененить данные профиля магазина
     def patch(self, request):
