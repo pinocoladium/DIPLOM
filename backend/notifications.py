@@ -11,6 +11,7 @@ def email_confirmation(email, client_id):
     Отправить письмо для подтрердждения электронной почты
     
     """
+    
     ConfirmEmailToken.objects.filter(client=client_id).delete()
 
     token = ConfirmEmailToken.objects.create(client=Client.objects.get(id=client_id))
@@ -27,10 +28,13 @@ def email_confirmation(email, client_id):
     
 
 def reset_password_created(client_id):
+    
     """
+    
     Отправить письмо с новым паролем для аккаунта и зменить его в базе данных
 
     """
+    
     new_password = generate_password()
     hashed_password = hash_password(new_password)
     client = Client.objects.filter(id=client_id).update(password=hashed_password)
@@ -47,7 +51,9 @@ def reset_password_created(client_id):
 
 
 def notific_delete_profile(email, username):
+    
     """
+    
     Отправить уведомление об удалении профиля
 
     """
@@ -63,9 +69,12 @@ def notific_delete_profile(email, username):
     print(f"УВЕДОМЛЯЕМ ВАС ОБ УДАЛЕНИИ ВАШЕГО АККАУНТА {username}")
 
 
-# def new_order_signal(user_id, **kwargs):
-#     """
-#     отправяем письмо при изменении статуса заказа
-#     """
-#     # send an e-mail to the user
-#     user = User.objects.get(id=user_id)
+def notific_new_order(user_id, **kwargs):
+    
+    """
+
+    отправяем письмо при изменении статуса заказа
+
+    """
+    
+    print("Изменился статус заказа")

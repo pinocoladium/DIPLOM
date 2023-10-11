@@ -12,8 +12,8 @@ import datetime
 
 from backend.auth import generate_password, hash_password, check_password
 from backend.models import (Category, Client, ConfirmEmailToken, Parameter,
-                            Product, ProductInfo, ProductParameter, Shop, Contact, Order)
-from backend.notifications import email_confirmation, reset_password_created, notific_delete_profile
+                            Product, ProductInfo, ProductParameter, Shop, Contact, Order, OrderItem)
+from backend.notifications import email_confirmation, reset_password_created, notific_delete_profile, notific_new_order
 from backend.serializers import (ClientSerializer, ProductInfoSerializer,
                                  ShopSerializer, ContactsSerializer, CategorySerializer, OrderSerializer, OrderItemSerializer)
 
@@ -447,8 +447,11 @@ class ShopView(ModelViewSet):
 
 
 class BasketView(APIView):
+    
     """
+    
     Класс для работы с корзиной пользователя
+    
     """
 
     # получить содержимое корзины
@@ -469,108 +472,109 @@ class BasketView(APIView):
     def post(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
-                if items in request.data["items"]:
+                if request.data["items"] and request.data["items"] == list:
                     objects_created = 0
                     basket = Order.objects.get_or_create(client=request.user.id, state='basket')
                     for items in request.data["items"]:
                         if ["product_info", "quantity"] in items.keys():
-                            items.update({'order': basket.id})
-                            serializer = OrderItemSerializer(data=items)
-                            if serializer.is_valid():
-                                try:
-                                    serializer.save()
-                                except IntegrityError as error:
-                                    return Response({'Status': False, 'Errors': str(error)})
-                                else:
-                                    objects_created += 1
-                                    return Response({'Status': True, "Info": f"Создано объектов - {objects_created}"})
-                            return Response({'Status': False, 'Errors': serializer.errors})
+                            if type(items["product_info"]) == int and type(items["quantity"]) == int:
+                                items.update({'order': basket.id})
+                                serializer = OrderItemSerializer(data=items)
+                                if serializer.is_valid():
+                                    try:
+                                        serializer.save()
+                                    except IntegrityError as error:
+                                        return Response({'Status': False, 'Errors': str(error)})
+                                    else:
+                                        objects_created += 1
+                                        return Response({'Status': True, "Info": f"Создано объектов - {objects_created}"})
+                                return Response({'Status': False, 'Errors': serializer.errors})
+                            return Response({'Status': False, 'Errors': 'Неверный тип данных'})
                         return Response({'Status': False, 'Errors': 'Не указаны все необходимые данные'})
                 return Response({'Status': False, 'Errors': 'Не указаны все необходимые данные'})
             return Response({"Status": False, "Error": "Необходимо сначала подтвердить адрес электронной почты"})
         return Response({'Status': False, 'Error': 'Вы не прошли аутентификацию'}, status=401)
 
     # удалить товары из корзины
-    # def delete(self, request, *args, **kwargs):
-    #     if request.user.is_authenticated:
-    #         items_sting = request.data.get('items')
-    #         if items_sting:
-    #             items_list = items_sting.split(',')
-    #             basket, _ = Order.objects.get_or_create(user_id=request.user.id, state='basket')
-    #             query = Q()
-    #             objects_deleted = False
-    #             for order_item_id in items_list:
-    #                 if order_item_id.isdigit():
-    #                     query = query | Q(order_id=basket.id, id=order_item_id)
-    #                     objects_deleted = True
-    #             if objects_deleted:
-    #                 deleted_count = OrderItem.objects.filter(query).delete()[0]
-    #                 return Response({'Status': True, 'Удалено объектов': deleted_count})
-    #         return Response({'Status': False, 'Errors': 'Не указаны все необходимые данные'})
-    #     return Response({'Status': False, 'Error': 'Вы не прошли аутентификацию'}, status=401)
+    def delete(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            if request.user.is_active == True:
+                if request.data['id'] and type(request.data['id']) == list:
+                    basket = Order.objects.get_or_create(client=request.user.id, state='basket')
+                    query = Q()
+                    objects_deleted = False
+                    for id in request.data['id']:
+                        if type(id) == int:
+                            query = query | Q(order=basket.id, id=id)
+                            objects_deleted = True
+                        return Response({'Status': False, 'Errors': 'Неверный тип данных'})
+                    if objects_deleted:
+                        deleted_count = OrderItem.objects.filter(query).delete()[0]
+                        return Response({'Status': True, "Info": f"Удалено объектов - {deleted_count}"})
+                return Response({'Status': False, 'Errors': 'Не указаны все необходимые данные'})
+            return Response({"Status": False, "Error": "Необходимо сначала подтвердить адрес электронной почты"})
+        return Response({'Status': False, 'Error': 'Вы не прошли аутентификацию'}, status=401)
     
-    # # добавить позиции в корзину
-    # def put(self, request, *args, **kwargs):
-    #     if not request.user.is_authenticated:
-    #         return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
-
-    #     items_sting = request.data.get('items')
-    #     if items_sting:
-    #         try:
-    #             items_dict = load_json(items_sting)
-    #         except ValueError:
-    #             return JsonResponse({'Status': False, 'Errors': 'Неверный формат запроса'})
-    #         else:
-    #             basket, _ = Order.objects.get_or_create(user_id=request.user.id, state='basket')
-    #             objects_updated = 0
-    #             for order_item in items_dict:
-    #                 if type(order_item['id']) == int and type(order_item['quantity']) == int:
-    #                     objects_updated += OrderItem.objects.filter(order_id=basket.id, id=order_item['id']).update(
-    #                         quantity=order_item['quantity'])
-
-    #             return JsonResponse({'Status': True, 'Обновлено объектов': objects_updated})
-    #     return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
+    # редакатировать количество товаров в корзине
+    def patch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            if request.user.is_active == True:
+                if request.data["items"] and request.data["items"] == list:
+                    basket = Order.objects.get_or_create(client=request.user.id, state='basket')
+                    objects_updated = 0
+                    for order_item in request.data["items"]:
+                        if type(order_item['id']) == int and type(order_item['quantity']) == int:
+                            objects_updated += OrderItem.objects.filter(order=basket.id, id=order_item['id']).update(
+                                quantity=order_item['quantity'])
+                            return Response({'Status': True, "Info": f"Обновлено объектов - {objects_updated}"})
+                        return Response({'Status': False, 'Errors': 'Неверный тип данных'})
+                return Response({'Status': False, 'Errors': 'Не указаны все необходимые данные'})
+            return Response({"Status": False, "Error": "Необходимо сначала подтвердить адрес электронной почты"})
+        return Response({'Status': False, 'Error': 'Вы не прошли аутентификацию'}, status=401)
     
     
-    # class OrderView(APIView):
-    # """
-    # Класс для получения и размешения заказов пользователями
-    # """
+    class OrderView(APIView):
+        
+        """
+        
+        Класс для получения и размешения заказов пользователями
+        
+        """
 
-    # # получить мои заказы
-    # def get(self, request, *args, **kwargs):
-    #     if not request.user.is_authenticated:
-    #         return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
-    #     order = Order.objects.filter(
-    #         user_id=request.user.id).exclude(state='basket').prefetch_related(
-    #         'ordered_items__product_info__product__category',
-    #         'ordered_items__product_info__product_parameters__parameter').select_related('contact').annotate(
-    #         total_sum=Sum(F('ordered_items__quantity') * F('ordered_items__product_info__price'))).distinct()
-
-    #     serializer = OrderSerializer(order, many=True)
-    #     return Response(serializer.data)
-
-    # # разместить заказ из корзины
-    # def post(self, request, *args, **kwargs):
-    #     if not request.user.is_authenticated:
-    #         return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
-
-    #     if {'id', 'contact'}.issubset(request.data):
-    #         if request.data['id'].isdigit():
-    #             try:
-    #                 is_updated = Order.objects.filter(
-    #                     user_id=request.user.id, id=request.data['id']).update(
-    #                     contact_id=request.data['contact'],
-    #                     state='new')
-    #             except IntegrityError as error:
-    #                 print(error)
-    #                 return JsonResponse({'Status': False, 'Errors': 'Неправильно указаны аргументы'})
-    #             else:
-    #                 if is_updated:
-    #                     new_order.send(sender=self.__class__, user_id=request.user.id)
-    #                     return JsonResponse({'Status': True})
-
-    #     return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
+        # получить мои заказы
+        def get(self, request, *args, **kwargs):
+            if request.user.is_authenticated:
+                if request.user.is_active == True:
+                    order = Order.objects.filter(
+                        client=request.user.id).exclude(state='basket').prefetch_related(
+                        'ordered_items__product_info__product__category',
+                        'ordered_items__product_info__product_parameters__parameter').select_related('contact').annotate(
+                        total_sum=Sum(F('ordered_items__quantity') * F('ordered_items__product_info__price'))).distinct()
+                    serializer = OrderSerializer(order, many=True)
+                    return Response(serializer.data)
+                return Response({"Status": False, "Error": "Необходимо сначала подтвердить адрес электронной почты"})
+            return Response({'Status': False, 'Error': 'Вы не прошли аутентификацию'}, status=401)
+        
+        # # разместить заказ из корзины
+        def post(self, request, *args, **kwargs):
+            if request.user.is_authenticated:
+                if request.user.is_active == True:
+                    if request.data["id"] and request.data["id"] == int:
+                        contacts = Contact.objects.get(client=request.user.id)
+                        try:
+                            is_updated = Order.objects.filter(
+                                client=request.user.id, id=request.data['id']).update(
+                                contact=contacts,
+                                state='new')
+                        except IntegrityError as error:
+                            return Response({'Status': False, 'Errors': str(error)})
+                        else:
+                            if is_updated:
+                                notific_new_order(request.user.id)
+                                return Response({'Status': True, "Info": "Заказ размещен"})
+                    return Response({'Status': False, 'Errors': 'Не указаны все необходимые данные'})
+                return Response({"Status": False, "Error": "Необходимо сначала подтвердить адрес электронной почты"})
+            return Response({'Status': False, 'Error': 'Вы не прошли аутентификацию'}, status=401)
     
     
     # class PartnerOrders(APIView):

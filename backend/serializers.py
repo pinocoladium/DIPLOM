@@ -87,6 +87,7 @@ class ProductInfoSerializer(serializers.ModelSerializer):
 
 
 class ShopSerializer(serializers.ModelSerializer):
+    
     class Meta:
         model = Shop
         fields = ("id", "name", "url", "client", "state")
@@ -94,6 +95,7 @@ class ShopSerializer(serializers.ModelSerializer):
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
+    
     class Meta:
         model = OrderItem
         fields = ('id', 'order', 'product_info', 'quantity')
@@ -104,10 +106,12 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 
 class OrderItemCreateSerializer(OrderItemSerializer):
+    
     product_info = ProductInfoSerializer(read_only=True)
 
 
 class OrderSerializer(serializers.ModelSerializer):
+    
     ordered_items = OrderItemCreateSerializer(read_only=True, many=True)
 
     total_sum = serializers.IntegerField()
