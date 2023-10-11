@@ -6,16 +6,14 @@ from backend.models import Client, ConfirmEmailToken
 
 
 def email_confirmation(email, client_id):
-    
     """
     Отправить письмо для подтрердждения электронной почты
-    
     """
-    
+
     ConfirmEmailToken.objects.filter(client=client_id).delete()
 
     token = ConfirmEmailToken.objects.create(client=Client.objects.get(id=client_id))
-    
+
     # send_mail(
     #     "ПОДТВЕРЖДЕНИЕ ЭЛЕКТРОННОЙ ПОЧТЫ",
     #     f"ТОКЕН ДЛЯ ПОДТВЕРЖДЕНИЯ АККАУНТА {token.client}: {token.key}",
@@ -23,18 +21,15 @@ def email_confirmation(email, client_id):
     #     [f"{email}"],
     #     fail_silently=False,
     # )
-    
+
     print(f"ТОКЕН ДЛЯ ПОДТВЕРЖДЕНИЯ АККАУНТА {token.client}: {token.key}")
-    
+
 
 def reset_password_created(client_id):
-    
     """
-    
     Отправить письмо с новым паролем для аккаунта и зменить его в базе данных
-
     """
-    
+
     new_password = generate_password()
     hashed_password = hash_password(new_password)
     client = Client.objects.filter(id=client_id).update(password=hashed_password)
@@ -46,18 +41,15 @@ def reset_password_created(client_id):
     #     [f"{client.email}"],
     #     fail_silently=False,
     # )
-    
+
     print(f"НОВЫЙ ПАРОЛЬ ОТ ВАШЕГО АККАУНТА {client.data}: {new_password}")
 
 
 def notific_delete_profile(email, username):
-    
     """
-    
     Отправить уведомление об удалении профиля
-
     """
-    
+
     # send_mail(
     #     "УДАЛЕНИЕ ПРОФИЛЯ",
     #     f"УВЕДОМЛЯЕМ ВАС ОБ УДАЛЕНИИ ВАШЕГО АККАУНТА {username}",
@@ -65,16 +57,39 @@ def notific_delete_profile(email, username):
     #     [f"{email}"],
     #     fail_silently=False,
     # )
-    
+
     print(f"УВЕДОМЛЯЕМ ВАС ОБ УДАЛЕНИИ ВАШЕГО АККАУНТА {username}")
 
 
-def notific_new_order(user_id, **kwargs):
-    
+def notific_new_order(email, order_id, **kwargs):
     """
+    отправяем письмо при размещении заказа
+    """
+    # send_mail(
+    #     "РАЗМЕЩЕНИЕ ЗАКАЗА",
+    #     f"УВЕДОМЛЯЕМ ВАС О РАЗМЕЩЕНИИ ВАШЕГО ЗАКАЗА ПОД НОМЕРОМ - {order_id}",
+    #     "from@example.com",
+    #     [f"{email}"],
+    #     fail_silently=False,
+    # )
 
+    print(f"УВЕДОМЛЯЕМ ВАС О РАЗМЕЩЕНИИ ВАШЕГО ЗАКАЗА ПОД НОМЕРОМ - {order_id}")
+
+
+def notific_new_state_order(client_id, order_id, state, **kwargs):
+    """
     отправяем письмо при изменении статуса заказа
-
     """
-    
-    print("Изменился статус заказа")
+    email = Client.objects.get(id=client_id).email
+
+    # send_mail(
+    #     "ИЗМЕНЕНИЕ СТАТУСА ЗАКАЗА",
+    #     f"УВЕДОМЛЯЕМ ВАС ОБ ИЗМЕНЕНИИ СТАТУСА ВАШЕГО ЗАКАЗА ПОД НОМЕРОМ - {id_order}. НОВЫЙ СТАТУС - {state}",
+    #     "from@example.com",
+    #     [f"{email}"],
+    #     fail_silently=False,
+    # )
+
+    print(
+        f"УВЕДОМЛЯЕМ ВАС ОБ ИЗМЕНЕНИИ СТАТУСА ВАШЕГО ЗАКАЗА ПОД НОМЕРОМ - {order_id}. НОВЫЙ СТАТУС - {state}"
+    )

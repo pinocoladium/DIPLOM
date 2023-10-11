@@ -9,8 +9,8 @@ Content-Type: application/json
 {
   "first_name": "Andrey",
   "last_name": "Minin",
-  "username": "Mininff5f4xxffj",
-  "email": "Mininfxfg4x5@gmail.com",
+  "username": "Mininff5f4xxfftj",
+  "email": "Mininfxtg4x5@gmail.com",
   "company": "MininCom",
   "position": "Director"
 }
@@ -22,8 +22,8 @@ POST {{baseUrl}}/profile/email/
 Content-Type: application/json
 
 {
-  "email": "Mininfxfg4x5@gmail.com",
-  "token": "ddb49849a3e101fb4a918c49d67f88549e8648"
+  "email": "Mininfxtg4x5@gmail.com",
+  "token": "ab76603a6606de5988812025c"
 }
 
 ###
@@ -33,57 +33,39 @@ POST {{baseUrl}}/login/
 Content-Type: application/json
 
 {
-  "email": "Mininfxfg4x5@gmail.com",
-  "password": "zZ~cGp9?5<"
+  "email": "Mininfxtg4x5@gmail.com",
+  "password": "_Zwru^i=GM"
 }
 
 ###
 
 # проверка аутентификации клиента
 GET {{baseUrl}}/login/
-Authorization: Token ae6667bf146d9a05802602662990c0ffbc15fffc
+Authorization: Token 92d644682e9efa9ec424bdf59c5f194ae3d05a70
 ###
 
 # выход из аутентификации
 GET {{baseUrl}}/logout/
-Authorization: Token 44e2160a92a88cbb2fc08217569e5ed667abd5ce
+Authorization: Token 92d644682e9efa9ec424bdf59c5f194ae3d05a70
 
 ###
 
 # проверка профиля пользователя
 GET {{baseUrl}}/profile/
 Content-Type: application/json
-
-{
-  "email": "Minine@gmail.com"
-}
+Authorization: Token 92d644682e9efa9ec424bdf59c5f194ae3d05a70
 
 ###
 
 # изменения данных профиля
-POST {{baseUrl}}/profile/
+PATCH {{baseUrl}}/profile/
 Content-Type: application/json
+Authorization: Token 92d644682e9efa9ec424bdf59c5f194ae3d05a70
 
 {
   "first_name": "AndreyAAA",
-  "last_name": "MininAAA",
-  "email": "Minine@gmail.com"
-}
-
-###
-
-# регистрация магазина
-POST {{baseUrl}}/profile/shop/
-Content-Type: application/json
-
-{
-  "first_name": "Andrey",
-  "last_name": "Minin",
-  "username": "Minin1HHH",
-  "email": "MininHHH@gmail.com",
-  "company": "MininCom",
-  "position": "Director",
-  "type": "shop"
+  "last_name": "MininAAAA",
+  "email": "MinineAAAA@gmail.com"
 }
 
 ###
@@ -91,3 +73,4 @@ Content-Type: application/json
 {"items": [{"product_info": 25, "quantity": 13}, {"product_info": 26, "quantity": 12,}]}
 {"id": [54, 45, 90]}
 {"items": [{"id": 25, "quantity": 13}, {"id": 26, "quantity": 12,}]}
+{"items": [{"id": 25, "state": "Подтвержден"}, {"id": 26, "state": "Отменен"}]}

@@ -335,7 +335,8 @@ class ConfirmEmailToken(models.Model):
     )
 
     created_at = models.DateTimeField(
-        auto_now_add=True, verbose_name=_("When was this token generated"),
+        auto_now_add=True,
+        verbose_name=_("When was this token generated"),
     )
 
     key = models.CharField(_("Key"), max_length=64, db_index=True, unique=True)
