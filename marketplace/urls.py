@@ -37,5 +37,6 @@ urlpatterns = [
     path("profile/shop/pricelist/", ShopPricelist.as_view()),
     path("profile/shop/orders/", OrderShopView.as_view()),
     path("products/", include("backend.urls")),
+    path("products/", include("backend.urls")),
     # path("products/{slug:slug}", include("backend.urls")),
 ]

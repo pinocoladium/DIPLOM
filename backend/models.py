@@ -248,7 +248,6 @@ class Contact(models.Model):
         blank=True,
         on_delete=models.CASCADE,
     )
-
     city = models.CharField(max_length=50, verbose_name="Город", blank=True)
     street = models.CharField(max_length=100, verbose_name="Улица", blank=True)
     house = models.CharField(max_length=15, verbose_name="Дом", blank=True)

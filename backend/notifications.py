@@ -32,17 +32,18 @@ def reset_password_created(client_id):
 
     new_password = generate_password()
     hashed_password = hash_password(new_password)
-    client = Client.objects.filter(id=client_id).update(password=hashed_password)
+    client = Client.objects.filter(id=client_id)
+    client.update(password=hashed_password)
 
     # send_mail(
     #     "СБРОС ПАРОЛЯ",
-    #     f"НОВЫЙ ПАРОЛЬ ОТ ВАШЕГО АККАУНТА {client.data}: {new_password}",
+    #     f"НОВЫЙ ПАРОЛЬ ОТ ВАШЕГО АККАУНТА {client[0].username}: {new_password}",
     #     "from@example.com",
     #     [f"{client.email}"],
     #     fail_silently=False,
     # )
 
-    print(f"НОВЫЙ ПАРОЛЬ ОТ ВАШЕГО АККАУНТА {client.data}: {new_password}")
+    print(f"НОВЫЙ ПАРОЛЬ ОТ ВАШЕГО АККАУНТА {client[0].username}: {new_password}")
 
 
 def notific_delete_profile(email, username):

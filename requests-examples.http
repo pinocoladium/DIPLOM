@@ -9,21 +9,10 @@ Content-Type: application/json
 {
   "first_name": "Andrey",
   "last_name": "Minin",
-  "username": "Mininff5f4xxfftj",
-  "email": "Mininfxtg4x5@gmail.com",
+  "username": "MininAndr",
+  "email": "MininCom@gmail.com",
   "company": "MininCom",
   "position": "Director"
-}
-
-###
-
-# подтверждение почты
-POST {{baseUrl}}/profile/email/
-Content-Type: application/json
-
-{
-  "email": "Mininfxtg4x5@gmail.com",
-  "token": "ab76603a6606de5988812025c"
 }
 
 ###
@@ -33,44 +22,294 @@ POST {{baseUrl}}/login/
 Content-Type: application/json
 
 {
-  "email": "Mininfxtg4x5@gmail.com",
-  "password": "_Zwru^i=GM"
+  "email": "MininCom@gmail.com",
+  "password": "#x~?`(8_yE"
 }
 
 ###
 
 # проверка аутентификации клиента
 GET {{baseUrl}}/login/
-Authorization: Token 92d644682e9efa9ec424bdf59c5f194ae3d05a70
+Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+
 ###
 
 # выход из аутентификации
 GET {{baseUrl}}/logout/
-Authorization: Token 92d644682e9efa9ec424bdf59c5f194ae3d05a70
+Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+
+###
+
+# запрос на повторную отправку токена для подтверждения почты
+GET {{baseUrl}}/profile/email/
+Content-Type: application/json
+Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+
+{
+  "email": "MininCom@gmail.com",
+  "token": "b5debadba4b4783ed3"
+}
+
+###
+
+# подтверждение почты
+POST {{baseUrl}}/profile/email/
+Content-Type: application/json
+
+{
+  "email": "MininCom@gmail.com",
+  "token": "b5debadba4b4783ed3"
+}
 
 ###
 
 # проверка профиля пользователя
 GET {{baseUrl}}/profile/
 Content-Type: application/json
-Authorization: Token 92d644682e9efa9ec424bdf59c5f194ae3d05a70
+Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
 
 ###
 
 # изменения данных профиля
 PATCH {{baseUrl}}/profile/
 Content-Type: application/json
-Authorization: Token 92d644682e9efa9ec424bdf59c5f194ae3d05a70
+Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
 
 {
-  "first_name": "AndreyAAA",
-  "last_name": "MininAAAA",
-  "email": "MinineAAAA@gmail.com"
+  "first_name": "AndreyChange",
+  "last_name": "MininChange"
 }
 
 ###
 
-{"items": [{"product_info": 25, "quantity": 13}, {"product_info": 26, "quantity": 12,}]}
-{"id": [54, 45, 90]}
-{"items": [{"id": 25, "quantity": 13}, {"id": 26, "quantity": 12,}]}
-{"items": [{"id": 25, "state": "Подтвержден"}, {"id": 26, "state": "Отменен"}]}
+# сброс пароля пользователя
+POST {{baseUrl}}/profile/reset_password/
+Content-Type: application/json
+Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+
+{
+"username": "Mininff5f4xxfftj"
+}
+
+###
+
+# удаление профиля
+DELETE {{baseUrl}}/profile/
+Content-Type: application/json
+Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+
+{
+  "password": "sb,WRbOjup"
+}
+
+###
+
+# узнать контакты пользователя
+GET {{baseUrl}}/profile/contacts/
+Content-Type: application/json
+Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+
+###
+
+# указать контакты пользователя
+POST {{baseUrl}}/profile/contacts/
+Content-Type: application/json
+Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+
+{
+  "city": "Moskow",
+  "street": "Mira",
+  "house": "34",
+  "phone": "8824244419"
+}
+
+###
+
+# изменить контакты пользователя
+PATCH {{baseUrl}}/profile/contacts/
+Content-Type: application/json
+Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+
+{
+  "city": "Moskow",
+  "street": "Miraaaa",
+  "house": "3555",
+  "phone": "8824244419"
+}
+
+###
+
+# удалить контакты пользователя
+DELETE {{baseUrl}}/profile/contacts/
+Content-Type: application/json
+Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+
+###
+
+# узнать данные профиля магазина
+GET {{baseUrl}}/profile/shop/
+Content-Type: application/json
+Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+
+###
+
+# создать профиль магазина
+POST {{baseUrl}}/profile/shop/
+Content-Type: application/json
+Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+
+{
+  "name": "MoskowShop"
+}
+
+###
+
+# редактировать профиль магазин
+PATCH {{baseUrl}}/profile/shop/
+Content-Type: application/json
+Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+
+{
+  "url": "https://ru.stackoverflow.com/"
+}
+
+###
+
+# удалить профиль магазин
+DELETE {{baseUrl}}/profile/shop/
+Content-Type: application/json
+Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+
+{
+  "password": "#x~?`(8_yE"
+}
+
+###
+
+# изменить статус приема заказов магазина
+GET {{baseUrl}}/profile/shop/state/
+Content-Type: application/json
+Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+
+
+###
+
+# просмотр собственного списка выставленных товаров
+GET {{baseUrl}}/profile/shop/pricelist/
+Content-Type: application/json
+Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+
+
+###
+
+# загрузка списка товаров из json
+POST {{baseUrl}}/profile/shop/pricelist/
+Content-Type: application/json
+Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+
+{
+    "categories": [
+        {
+            "id": 224,
+            "name": "Смартфоны"
+        },
+        {
+            "id": 15,
+            "name": "Аксессуары"
+        },
+        {
+            "id": 1,
+            "name": "Flash-накопители"
+        }
+    ],
+    "goods": [
+        {
+            "id": 4216292,
+            "category": 224,
+            "model": "apple/iphone/xs-max",
+            "name": "Смартфон Apple iPhone XS Max 512GB (золотистый)",
+            "price": 110000,
+            "price_rrc": 116990,
+            "quantity": 14,
+            "parameters": {
+                "Диагональ (дюйм)": 6.5,
+                "Разрешение (пикс)": "2688x1242",
+                "Встроенная память (Гб)": 512,
+                "Цвет": "золотистый"
+            }
+        },
+        {
+            "id": 4216313,
+            "category": 224,
+            "model": "apple/iphone/xr",
+            "name": "Смартфон Apple iPhone XR 256GB (красный)",
+            "price": 65000,
+            "price_rrc": 69990,
+            "quantity": 9,
+            "parameters": {
+                "Диагональ (дюйм)": 6.1,
+                "Разрешение (пикс)": "1792x828",
+                "Встроенная память (Гб)": 256,
+                "Цвет": "красный"
+            }
+        },
+        {
+            "id": 4216226,
+            "category": 224,
+            "model": "apple/iphone/xr",
+            "name": "Смартфон Apple iPhone XR 256GB (черный)",
+            "price": 65000,
+            "price_rrc": 69990,
+            "quantity": 5,
+            "parameters": {
+                "Диагональ (дюйм)": 6.1,
+                "Разрешение (пикс)": "1792x828",
+                "Встроенная память (Гб)": 256,
+                "Цвет": "черный"
+            }
+        },
+        {
+            "id": 4672670,
+            "category": 224,
+            "model": "apple/iphone/xr",
+            "name": "Смартфон Apple iPhone XR 128GB (синий)",
+            "price": 60000,
+            "price_rrc": 64990,
+            "quantity": 7,
+            "parameters": {
+                "Диагональ (дюйм)": 6.1,
+                "Разрешение (пикс)": "1792x828",
+                "Встроенная память (Гб)": 256,
+                "Цвет": "синий"
+            }
+        }
+    ]
+}
+
+###
+
+# просмотр всех товаров
+GET {{baseUrl}}/products/all
+Content-Type: application/json
+Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+
+###
+
+# просмотр всех категорий товаров
+GET {{baseUrl}}/products/category/all
+Content-Type: application/json
+Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+
+###
+
+# просмотр всех магазинов
+GET {{baseUrl}}/products/shop/all
+Content-Type: application/json
+Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+
+###
+
+# {"items": [{"product_info": 25, "quantity": 13}, {"product_info": 26, "quantity": 12,}]}
+# {"id": [54, 45, 90]}
+# {"items": [{"id": 25, "quantity": 13}, {"id": 26, "quantity": 12,}]}
+# {"items": [{"id": 25, "state": "Подтвержден"}, {"id": 26, "state": "Отменен"}]}

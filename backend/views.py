@@ -32,10 +32,9 @@ class ProfileClient(APIView):
     # узнать данные профиля пользователя
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
-            if request.user.is_authenticated:
-                return Response(
-                    ClientSerializer(Client.objects.get(id=request.user.id)).data
-                )
+            return Response(
+                ClientSerializer(Client.objects.get(id=request.user.id)).data
+            )
         return Response(
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
@@ -99,11 +98,18 @@ class ProfileClient(APIView):
     def delete(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
-                if check_password(request.data["password"], request.user.password):
-                    notific_delete_profile(request.user.email, request.user.username)
-                    Client.objects.filter(id=request.user.id).delete()
-                    return Response({"Status": True, "info": "Профиль удален"})
-                return Response({"Status": False, "Error": "Неверный пароль"})
+                if request.data and "password" in request.data.keys() and request.data["password"]:
+                    if check_password(request.data["password"], request.user.password):
+                        notific_delete_profile(request.user.email, request.user.username)
+                        Client.objects.filter(id=request.user.id).delete()
+                        return Response({"Status": True, "info": "Профиль удален"})
+                    return Response({"Status": False, "Error": "Неверный пароль"})
+                return Response(
+                        {
+                            "Status": False,
+                            "Errors": "Не указаны все необходимые данные (password)",
+                        }
+                    )
             return Response(
                 {
                     "Status": False,
@@ -170,8 +176,16 @@ class ProfilContacts(APIView):
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
+                contact = Contact.objects.filter(client=request.user.id)
+                if contact:
+                    return Response(
+                        ContactsSerializer(contact[0]).data
+                    )
                 return Response(
-                    ContactsSerializer(Contact.objects.get(client=request.user.id)).data
+                    {
+                        "Status": False,
+                        "Error": "Контакты профиля не найдены",
+                    }
                 )
             return Response(
                 {
@@ -188,7 +202,8 @@ class ProfilContacts(APIView):
         if request.user.is_authenticated:
             if request.user.is_active == True:
                 if {"city", "street", "house", "phone"}.issubset(request.data):
-                    contacts_serializers = ContactsSerializer(request.data)
+                    request.data['client'] = request.user.id
+                    contacts_serializers = ContactsSerializer(data=request.data)
                     if contacts_serializers.is_valid():
                         try:
                             contacts_serializers.save()
@@ -200,7 +215,7 @@ class ProfilContacts(APIView):
                         {"Status": False, "Errors": contacts_serializers.errors}
                     )
                 return Response(
-                    {"Status": False, "Errors": "Не указаны все необходимые данные"}
+                    {"Status": False, "Errors": "Не указаны все необходимые данные (city, street, house, phone)"}
                 )
             return Response(
                 {
@@ -216,9 +231,10 @@ class ProfilContacts(APIView):
     def patch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
-                if Contact.objects.filter(client=request.user.id):
+                contact =Contact.objects.filter(client=request.user.id)
+                if contact:
                     contacts_serializers = ContactsSerializer(
-                        Contact, data=request.data, partial=True
+                        contact[0], data=request.data, partial=True
                     )
                     if contacts_serializers.is_valid():
                         try:
@@ -309,7 +325,7 @@ class LoginClient(APIView):
                 {
                     "Status": True,
                     "Info": "Аутентификация прошла успешно",
-                    "Token": str(token),
+                    "Token": str(token[0]),
                 }
             )
         return Response({"status": False, "Error": "Неверно введен логин или пароль"})
@@ -343,7 +359,7 @@ class ProfileShop(APIView):
                         "Error": "Необходимо сначала подтвердить адрес электронной почты",
                     }
                 )
-            return Response({"Status": False, "Error": "Только для магазинов"})
+            return Response({"Status": False, "Error": "Магазин не создан"})
         return Response(
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
@@ -378,7 +394,7 @@ class ProfileShop(APIView):
                     return Response(
                         {
                             "Status": False,
-                            "Errors": "Не указаны все необходимые аргументы",
+                            "Errors": "Не указаны все необходимые данные (name)",
                         }
                     )
                 return Response(
@@ -430,11 +446,13 @@ class ProfileShop(APIView):
         if request.user.is_authenticated:
             if request.user.type == "shop":
                 if request.user.is_active:
-                    if check_password(request.data["password"], request.user.password):
-                        Shop.objects.filter(client=request.user.id).delete()
-                        Client.objects.filter(id=request.user.id).update(type="buyer")
-                        return Response({"Status": True, "Info": "Изменения внесены"})
-                    return Response({"Status": False, "Error": "Неверный пароль"})
+                    if request.data and "password" in request.data.keys() and request.data["password"]:
+                        if check_password(request.data["password"], request.user.password):
+                            Shop.objects.filter(client=request.user.id).delete()
+                            Client.objects.filter(id=request.user.id).update(type="buyer")
+                            return Response({"Status": True, "Info": "Магазин удален"})
+                        return Response({"Status": False, "Error": "Неверный пароль"})
+                    return Response({"Status": False, "Error": "Не указаны все необходимые данные (password)"})
                 return Response(
                     {
                         "Status": False,
@@ -451,20 +469,20 @@ def state_change_view(request, *args, **kwargs):
     if request.user.is_authenticated:
         if request.user.type == "shop":
             if request.user.is_active == True:
-                shop = Shop.objects.get(client=request.user.id)
-                if shop.state:
+                shop = Shop.objects.filter(client=request.user.id)
+                if shop[0].state:
                     shop.update(state=False)
                     return Response(
                         {
                             "Status": True,
-                            "State": Shop.objects.get(client=request.user.id).state,
+                            "Info": "Статус - неактивен",
                         }
                     )
                 shop.update(state=True)
                 return Response(
                     {
                         "Status": True,
-                        "State": Client.objects.get(client=request.user.id).state,
+                        "Info": "Статус - активен",
                     }
                 )
             return Response(
@@ -490,16 +508,11 @@ class ShopPricelist(APIView):
             if request.user.type == "shop":
                 shop = Shop.objects.get(client=request.user.id)
                 if shop.state == True:
-                    product_all = ProductInfo.objects.filter(shop=shop)
-                    serializer = ProductInfoSerializer(product_all, many=True)
-                    if serializer.is_valid():
-                        try:
-                            serializer.save()
-                        except IntegrityError as error:
-                            return Response({"Status": False, "Errors": str(error)})
-                        else:
-                            Response(serializer.data)
-                    return Response({"Status": False, "Errors": serializer.errors})
+                    product_all = ProductInfo.objects.filter(shop=shop.id)
+                    if product_all:
+                        serializer = ProductInfoSerializer(product_all, many=True)
+                        return Response(serializer.data)
+                    return Response({"Status": False, "Errors": "Товары не найдены"})
                 return Response(
                     {
                         "Status": False,
@@ -518,37 +531,37 @@ class ShopPricelist(APIView):
         if request.user.is_authenticated:
             if request.user.type == "shop":
                 if request.user.is_active == True:
-                    shop = Shop.objects.get(id=request.user.id)
+                    shop = Shop.objects.get(client=request.user.id)
                     if shop.state == True:
                         if {"categories", "goods"}.issubset(request.data):
                             for category in request.data["categories"]:
                                 category_object = Category.objects.get_or_create(
                                     id_category=category["id"],
                                     name=category["name"],
-                                    shop=shop.id,
-                                )
+                                )[0]
+                                category_object.shop.add(shop.id)
                                 category_object.save()
                             ProductInfo.objects.filter(shop=shop.id).delete()
                             for item in request.data["goods"]:
                                 product = Product.objects.get_or_create(
-                                    name=item["name"], category=category_object.id
-                                )
+                                    name=item["name"], category=category_object
+                                )[0]
                                 product_info = ProductInfo.objects.create(
-                                    product=product.id,
+                                    product=product,
                                     external_id=item["id"],
                                     model=item["model"],
                                     price=item["price"],
                                     price_rrc=item["price_rrc"],
                                     quantity=item["quantity"],
-                                    shop=shop.id,
+                                    shop=shop,
                                 )
                                 for name, value in item["parameters"].items():
                                     parameter_object = Parameter.objects.get_or_create(
                                         name=name
-                                    )
+                                    )[0]
                                     ProductParameter.objects.create(
-                                        product_info=product_info.id,
-                                        parameter=parameter_object.id,
+                                        product_info=product_info,
+                                        parameter=parameter_object,
                                         value=value,
                                     )
                             return Response(
@@ -580,7 +593,7 @@ class ShopPricelist(APIView):
         )
 
     # удаление списка выставленных товаров (только для продавцов)
-    def get(self, request, *args, **kwargs):
+    def delete(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.type == "shop":
                 if request.user.is_active == True:

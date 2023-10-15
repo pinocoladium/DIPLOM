@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from backend.models import (Client, Contact, Order, OrderItem, Product,
-                            ProductInfo, ProductParameter, Shop)
+                            ProductInfo, ProductParameter, Shop, Category)
 
 
 class ContactsSerializer(serializers.ModelSerializer):
@@ -15,11 +15,11 @@ class ContactsSerializer(serializers.ModelSerializer):
             "structure",
             "building",
             "apartment",
-            "user",
+            "client",
             "phone",
         )
         read_only_fields = ("id",)
-        extra_kwargs = {"user": {"write_only": True}}
+        extra_kwargs = {"client": {"write_only": True}}
 
 
 class ClientSerializer(serializers.ModelSerializer):
@@ -40,9 +40,17 @@ class ClientSerializer(serializers.ModelSerializer):
         read_only_fields = ("id",)
 
 
-class CategorySerializer(serializers.ModelSerializer):
+class ShopSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Client
+        model = Shop
+        fields = ("id", "name", "url", "client", "state")
+        read_only_fields = ("id",)
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = Category
         fields = ("id_category", "name", "shop")
 
 
@@ -55,6 +63,8 @@ class ParameterSerializer(serializers.ModelSerializer):
 
 
 class ProductSerializer(serializers.ModelSerializer):
+    category = CategorySerializer(read_only=True)
+    
     class Meta:
         model = Product
         fields = (
@@ -80,13 +90,6 @@ class ProductInfoSerializer(serializers.ModelSerializer):
             "price_rrc",
             "product_parameters",
         )
-        read_only_fields = ("id",)
-
-
-class ShopSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Shop
-        fields = ("id", "name", "url", "client", "state")
         read_only_fields = ("id",)
 
 
