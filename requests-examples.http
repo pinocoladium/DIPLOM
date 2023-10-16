@@ -1,6 +1,10 @@
-# примеры API-запросов
-
 @baseUrl = http://localhost:8000
+
+
+####################################################
+# ПРИМЕРЫ ЗАПРОСОВ ДЛЯ ВСЕХ ПОЛЬЗОВАТЕЛЕЙ СЕРВИСА
+####################################################
+
 
 # регистрация клиента
 POST {{baseUrl}}/profile/
@@ -17,38 +21,10 @@ Content-Type: application/json
 
 ###
 
-# аутентификация клиента
-POST {{baseUrl}}/login/
-Content-Type: application/json
-
-{
-  "email": "MininCom@gmail.com",
-  "password": "#x~?`(8_yE"
-}
-
-###
-
-# проверка аутентификации клиента
-GET {{baseUrl}}/login/
-Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
-
-###
-
-# выход из аутентификации
-GET {{baseUrl}}/logout/
-Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
-
-###
-
 # запрос на повторную отправку токена для подтверждения почты
 GET {{baseUrl}}/profile/email/
 Content-Type: application/json
-Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
-
-{
-  "email": "MininCom@gmail.com",
-  "token": "b5debadba4b4783ed3"
-}
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 
 ###
 
@@ -58,22 +34,45 @@ Content-Type: application/json
 
 {
   "email": "MininCom@gmail.com",
-  "token": "b5debadba4b4783ed3"
+  "token": "a276f755361f7c0a99f4b0676887"
 }
+
+###
+
+# аутентификация клиента
+POST {{baseUrl}}/login/
+Content-Type: application/json
+
+{
+  "email": "MininCom@gmail.com",
+  "password": ".RESRx`(*@"
+}
+
+###
+
+# проверка аутентификации клиента
+GET {{baseUrl}}/login/
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
+
+###
+
+# выход из аутентификации
+GET {{baseUrl}}/logout/
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 
 ###
 
 # проверка профиля пользователя
 GET {{baseUrl}}/profile/
 Content-Type: application/json
-Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 
 ###
 
 # изменения данных профиля
 PATCH {{baseUrl}}/profile/
 Content-Type: application/json
-Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 
 {
   "first_name": "AndreyChange",
@@ -85,10 +84,10 @@ Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
 # сброс пароля пользователя
 POST {{baseUrl}}/profile/reset_password/
 Content-Type: application/json
-Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 
 {
-"username": "Mininff5f4xxfftj"
+"username": "MininAndr"
 }
 
 ###
@@ -96,7 +95,7 @@ Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
 # удаление профиля
 DELETE {{baseUrl}}/profile/
 Content-Type: application/json
-Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 
 {
   "password": "sb,WRbOjup"
@@ -107,14 +106,14 @@ Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
 # узнать контакты пользователя
 GET {{baseUrl}}/profile/contacts/
 Content-Type: application/json
-Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 
 ###
 
 # указать контакты пользователя
 POST {{baseUrl}}/profile/contacts/
 Content-Type: application/json
-Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 
 {
   "city": "Moskow",
@@ -128,7 +127,7 @@ Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
 # изменить контакты пользователя
 PATCH {{baseUrl}}/profile/contacts/
 Content-Type: application/json
-Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 
 {
   "city": "Moskow",
@@ -142,21 +141,29 @@ Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
 # удалить контакты пользователя
 DELETE {{baseUrl}}/profile/contacts/
 Content-Type: application/json
-Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
+
+###
+
+
+######################################################
+# ПРИМЕРЫ ЗАПРОСОВ ДЛЯ МАГАЗИНОВ (ПОСТАВЩИКОВ)
+######################################################
+
 
 ###
 
 # узнать данные профиля магазина
 GET {{baseUrl}}/profile/shop/
 Content-Type: application/json
-Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 
 ###
 
 # создать профиль магазина
 POST {{baseUrl}}/profile/shop/
 Content-Type: application/json
-Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 
 {
   "name": "MoskowShop"
@@ -167,7 +174,7 @@ Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
 # редактировать профиль магазин
 PATCH {{baseUrl}}/profile/shop/
 Content-Type: application/json
-Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 
 {
   "url": "https://ru.stackoverflow.com/"
@@ -178,7 +185,7 @@ Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
 # удалить профиль магазин
 DELETE {{baseUrl}}/profile/shop/
 Content-Type: application/json
-Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 
 {
   "password": "#x~?`(8_yE"
@@ -189,7 +196,7 @@ Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
 # изменить статус приема заказов магазина
 GET {{baseUrl}}/profile/shop/state/
 Content-Type: application/json
-Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 
 
 ###
@@ -197,7 +204,7 @@ Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
 # просмотр собственного списка выставленных товаров
 GET {{baseUrl}}/profile/shop/pricelist/
 Content-Type: application/json
-Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 
 
 ###
@@ -205,7 +212,7 @@ Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
 # загрузка списка товаров из json
 POST {{baseUrl}}/profile/shop/pricelist/
 Content-Type: application/json
-Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 
 {
     "categories": [
@@ -288,28 +295,99 @@ Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
 
 ###
 
-# просмотр всех товаров
-GET {{baseUrl}}/products/all
+# удалить список товаров 
+DELETE {{baseUrl}}/profile/shop/pricelist/
 Content-Type: application/json
-Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
+
+{
+  "password": ".RESRx`(*@"
+}
+
+###
+
+# получение размещенных заказов
+GET {{baseUrl}}/profile/shop/orders/
+Content-Type: application/json
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
+
+###
+
+# изменение статусов заказов
+PATCH {{baseUrl}}/profile/shop/orders/
+Content-Type: application/json
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
+
+{"items": [{"id": 1, "state": "Подтвержден"}]}
+
+###
+
+
+###################################################
+# ПРИМЕРЫ ЗАПРОСОВ ДЛЯ ПОКУПАТЕЛЕЙ (МЕНЕДЖЕРОВ)
+###################################################
+
+###
+
+# просмотр всех товаров
+GET {{baseUrl}}/products/all?search=
 
 ###
 
 # просмотр всех категорий товаров
 GET {{baseUrl}}/products/category/all
-Content-Type: application/json
-Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
 
 ###
 
 # просмотр всех магазинов
 GET {{baseUrl}}/products/shop/all
-Content-Type: application/json
-Authorization: Token 9bf4de408d9a926cbf5cb72921fea6eaa742f331
 
 ###
 
-# {"items": [{"product_info": 25, "quantity": 13}, {"product_info": 26, "quantity": 12,}]}
-# {"id": [54, 45, 90]}
-# {"items": [{"id": 25, "quantity": 13}, {"id": 26, "quantity": 12,}]}
-# {"items": [{"id": 25, "state": "Подтвержден"}, {"id": 26, "state": "Отменен"}]}
+# просмотр корзины
+GET {{baseUrl}}/profile/basket/
+Content-Type: application/json
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
+
+###
+
+# добавить товар в корзину
+POST {{baseUrl}}/profile/basket/
+Content-Type: application/json
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
+
+{"items": [{"product_info": 81, "quantity": 3}, {"product_info": 82, "quantity": 2}]}
+
+###
+
+# изменить количество товара в корзине
+PATCH {{baseUrl}}/profile/basket/
+Content-Type: application/json
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
+
+{"items": [{"id": 13, "quantity": 7}, {"id": 10, "quantity": 4}]}
+
+###
+
+# удалить товар из корзины
+DELETE {{baseUrl}}/profile/basket/
+Content-Type: application/json
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
+
+{"id": [14]}
+
+###
+
+# получить размещенные заказы
+GET {{baseUrl}}/profile/basket/buy
+Content-Type: application/json
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
+
+###
+
+# разместить заказ товаров из корзины
+POST {{baseUrl}}/profile/basket/buy
+Content-Type: application/json
+Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
+
+###

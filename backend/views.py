@@ -21,7 +21,7 @@ from backend.notifications import (email_confirmation, notific_delete_profile,
 from backend.serializers import (CategorySerializer, ClientSerializer,
                                  ContactsSerializer, OrderItemSerializer,
                                  OrderSerializer, ProductInfoSerializer,
-                                 ShopSerializer)
+                                 ShopSerializer, ShopAllSerializer)
 
 
 class ProfileClient(APIView):
@@ -536,7 +536,7 @@ class ShopPricelist(APIView):
                         if {"categories", "goods"}.issubset(request.data):
                             for category in request.data["categories"]:
                                 category_object = Category.objects.get_or_create(
-                                    id_category=category["id"],
+                                    id=category["id"],
                                     name=category["name"],
                                 )[0]
                                 category_object.shop.add(shop.id)
@@ -544,7 +544,7 @@ class ShopPricelist(APIView):
                             ProductInfo.objects.filter(shop=shop.id).delete()
                             for item in request.data["goods"]:
                                 product = Product.objects.get_or_create(
-                                    name=item["name"], category=category_object
+                                    name=item["name"], category=Category.objects.get(id=item["category"])
                                 )[0]
                                 product_info = ProductInfo.objects.create(
                                     product=product,
@@ -597,13 +597,20 @@ class ShopPricelist(APIView):
         if request.user.is_authenticated:
             if request.user.type == "shop":
                 if request.user.is_active == True:
-                    if check_password(request.data["password"], request.user.password):
-                        shop = Shop.objects.get(client=request.user.id)
-                        ProductInfo.objects.filter(shop=shop).delete()
-                        return Response(
-                            {"Status": True, "info": "Список товаров удален"}
+                    if {"password"}.issubset(request.data) and request.data["password"]:
+                        if check_password(request.data["password"], request.user.password):
+                            shop = Shop.objects.get(client=request.user.id)
+                            ProductInfo.objects.filter(shop=shop).delete()
+                            return Response(
+                                {"Status": True, "info": "Список товаров удален"}
+                            )
+                        return Response({"Status": False, "Error": "Неверный пароль"})
+                    return Response(
+                            {
+                                "Status": False,
+                                "Errors": "Не указаны все необходимые данные (password)",
+                            }
                         )
-                    return Response({"Status": False, "Error": "Неверный пароль"})
                 return Response(
                     {
                         "Status": False,
@@ -622,10 +629,8 @@ class ShopPricelist(APIView):
 class ProductsViewSet(ModelViewSet):
     queryset = ProductInfo.objects.all()
     serializer_class = ProductInfoSerializer
-    filter_backends = [
-        SearchFilter,
-    ]
-    search_fields = ["model", "product", "product_parameters"]
+    filter_backends = [SearchFilter]
+    search_fields = ["model", "product__name", "product_parameters__value", "product__category__name"]
     pagination_class = LimitOffsetPagination
 
 
@@ -633,15 +638,15 @@ class ProductsViewSet(ModelViewSet):
 class CategoryView(ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    search_fields = ["name", "state"]
+    search_fields = ["name"]
     pagination_class = LimitOffsetPagination
 
 
 # просмотр всех магазинов
 class ShopView(ModelViewSet):
     queryset = Shop.objects.filter(state=True)
-    serializer_class = ShopSerializer
-    search_fields = ["name", "state"]
+    serializer_class = ShopAllSerializer
+    search_fields = ["name"]
     pagination_class = LimitOffsetPagination
 
 
@@ -668,6 +673,8 @@ class BasketView(APIView):
                     )
                     .distinct()
                 )
+                if not basket:
+                    return Response({"Status": True, "Info": "Ваша корзина пуста"})
                 serializer = OrderSerializer(basket, many=True)
                 return Response(serializer.data)
             return Response(
@@ -684,13 +691,14 @@ class BasketView(APIView):
     def post(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
-                if request.data["items"] and request.data["items"] == list:
+                if {"items"}.issubset(request.data) and request.data["items"] and type(request.data["items"]) == list:
                     objects_created = 0
+                    client = Client.objects.get(id=request.user.id)
                     basket = Order.objects.get_or_create(
-                        client=request.user.id, state="basket"
-                    )
+                        client=client, state="basket"
+                    )[0]
                     for items in request.data["items"]:
-                        if ["product_info", "quantity"] in items.keys():
+                        if "product_info" in items.keys() and "quantity" in items.keys():
                             if (
                                 type(items["product_info"]) == int
                                 and type(items["quantity"]) == int
@@ -706,24 +714,27 @@ class BasketView(APIView):
                                         )
                                     else:
                                         objects_created += 1
-                                        return Response(
-                                            {
-                                                "Status": True,
-                                                "Info": f"Создано объектов - {objects_created}",
-                                            }
-                                        )
-                                return Response(
+                                else:
+                                    return Response(
                                     {"Status": False, "Errors": serializer.errors}
                                 )
-                            return Response(
+                            else:
+                                return Response(
                                 {"Status": False, "Errors": "Неверный тип данных"}
                             )
-                        return Response(
+                        else:
+                            return Response(
                             {
                                 "Status": False,
                                 "Errors": "Не указаны все необходимые данные",
                             }
                         )
+                    return Response(
+                        {
+                            "Status": True,
+                            "Info": f"Создано объектов - {objects_created}",
+                        }
+                    ) 
                 return Response(
                     {"Status": False, "Errors": "Не указаны все необходимые данные"}
                 )
@@ -742,18 +753,17 @@ class BasketView(APIView):
         if request.user.is_authenticated:
             if request.user.is_active == True:
                 if request.data["id"] and type(request.data["id"]) == list:
-                    basket = Order.objects.get_or_create(
+                    basket = Order.objects.filter(
                         client=request.user.id, state="basket"
                     )
+                    if not basket:
+                        return Response({"Status": True, "Info": "Ваша корзина пуста"})
                     query = Q()
                     objects_deleted = False
                     for id in request.data["id"]:
                         if type(id) == int:
-                            query = query | Q(order=basket.id, id=id)
+                            query = query | Q(order=basket[0].id, id=id)
                             objects_deleted = True
-                        return Response(
-                            {"Status": False, "Errors": "Неверный тип данных"}
-                        )
                     if objects_deleted:
                         deleted_count = OrderItem.objects.filter(query).delete()[0]
                         return Response(
@@ -761,6 +771,9 @@ class BasketView(APIView):
                                 "Status": True,
                                 "Info": f"Удалено объектов - {deleted_count}",
                             }
+                        )
+                    return Response(
+                            {"Status": False, "Errors": "Неверный тип данных"}
                         )
                 return Response(
                     {"Status": False, "Errors": "Не указаны все необходимые данные"}
@@ -779,10 +792,12 @@ class BasketView(APIView):
     def patch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
-                if request.data["items"] and request.data["items"] == list:
-                    basket = Order.objects.get_or_create(
+                if request.data and request.data["items"] and type(request.data["items"]) == list:
+                    basket = Order.objects.filter(
                         client=request.user.id, state="basket"
                     )
+                    if not basket:
+                        return Response({"Status": True, "Info": "Ваша корзина пуста"})
                     objects_updated = 0
                     for order_item in request.data["items"]:
                         if (
@@ -790,17 +805,17 @@ class BasketView(APIView):
                             and type(order_item["quantity"]) == int
                         ):
                             objects_updated += OrderItem.objects.filter(
-                                order=basket.id, id=order_item["id"]
+                                order=basket[0].id, id=order_item["id"]
                             ).update(quantity=order_item["quantity"])
+                        else:
                             return Response(
+                            {"Status": False, "Errors": "Неверный тип данных"}
+                        )
+                    return Response(
                                 {
                                     "Status": True,
                                     "Info": f"Обновлено объектов - {objects_updated}",
-                                }
-                            )
-                        return Response(
-                            {"Status": False, "Errors": "Неверный тип данных"}
-                        )
+                                })
                 return Response(
                     {"Status": False, "Errors": "Не указаны все необходимые данные"}
                 )
@@ -840,6 +855,8 @@ class OrderBuyerView(APIView):
                     )
                     .distinct()
                 )
+                if not order:
+                    return Response({"Status": True, "Info": "Вы еще не успели сделать заказ"})
                 serializer = OrderSerializer(order, many=True)
                 return Response(serializer.data)
             return Response(
@@ -856,21 +873,18 @@ class OrderBuyerView(APIView):
     def post(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
-                if request.data["id"] and request.data["id"] == int:
-                    contacts = Contact.objects.get(client=request.user.id)
+                contacts = Contact.objects.get(client=request.user.id)
+                order = Order.objects.filter(client=request.user.id, state = "basket")
+                if order:
                     try:
-                        order = Order.objects.filter(
-                            client=request.user.id, id=request.data["id"]
-                        ).update(contact=contacts, state="new")
+                        order.update(contact=contacts, state="new")
                     except IntegrityError as error:
                         return Response({"Status": False, "Errors": str(error)})
                     else:
                         if order:
-                            notific_new_order(request.user.email, order.id)
+                            notific_new_order(request.user.email, order[0].id)
                             return Response({"Status": True, "Info": "Заказ размещен"})
-                return Response(
-                    {"Status": False, "Errors": "Не указаны все необходимые данные"}
-                )
+                return Response({"Status": True, "Info": "Ваша корзина пуста"})
             return Response(
                 {
                     "Status": False,
@@ -887,7 +901,7 @@ class OrderShopView(APIView):
     Класс для работы с заказами (только для магазинов)
     """
 
-    # получение закзов
+    # получение заказов
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
@@ -939,20 +953,23 @@ class OrderShopView(APIView):
                 if request.user.type == "shop":
                     if Shop.objects.get(client=request.user.id).state == True:
                         if (
-                            request.data["items"]
+                            request.data 
+                            and request.data["items"]
                             and type(request.data["items"]) == list
                         ):
                             for items in request.data["items"]:
                                 if (
-                                    ["id", "state"] in items.keys()
+                                    "id" in items.keys()
+                                    and "state" in items.keys()
                                     and type(items["id"]) == int
                                     and type(items["state"]) == str
                                 ):
-                                    if ["basket", "new"] not in items["state"]:
-                                        try:
-                                            order = Order.objects.filter(
+                                    if "basket" not in items["state"] and "new" not in items["state"]:
+                                        order = Order.objects.filter(
                                                 id=items["id"]
-                                            ).update(state=items["state"])
+                                            )
+                                        try:
+                                            order.update(state=items["state"])
                                         except IntegrityError as error:
                                             return Response(
                                                 {"Status": False, "Errors": str(error)}
@@ -960,8 +977,8 @@ class OrderShopView(APIView):
                                         else:
                                             if order:
                                                 notific_new_state_order(
-                                                    order.client,
-                                                    order.id,
+                                                    order[0].client,
+                                                    order[0].id,
                                                     items["state"],
                                                 )
                                                 return Response(

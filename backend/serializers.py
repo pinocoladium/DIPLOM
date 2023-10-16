@@ -38,20 +38,21 @@ class ClientSerializer(serializers.ModelSerializer):
             "contacts",
         )
         read_only_fields = ("id",)
-
-
-class ShopSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Shop
-        fields = ("id", "name", "url", "client", "state")
-        read_only_fields = ("id",)
-
-
+        
+      
 class CategorySerializer(serializers.ModelSerializer):
-    
+
     class Meta:
         model = Category
-        fields = ("id_category", "name", "shop")
+        fields = ("id", "name")
+
+
+class ShopAllSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = Shop
+        fields = ("id", "name", "url")
+        read_only_fields = ("id",)
 
 
 class ParameterSerializer(serializers.ModelSerializer):
@@ -76,6 +77,7 @@ class ProductSerializer(serializers.ModelSerializer):
 class ProductInfoSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
     product_parameters = ParameterSerializer(read_only=True, many=True)
+    shop = ShopAllSerializer(read_only=True)
 
     class Meta:
         model = ProductInfo
@@ -90,6 +92,13 @@ class ProductInfoSerializer(serializers.ModelSerializer):
             "price_rrc",
             "product_parameters",
         )
+        read_only_fields = ("id",)
+
+
+class ShopSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Shop
+        fields = ("id", "name", "url", "client", "state")
         read_only_fields = ("id",)
 
 

@@ -77,17 +77,16 @@ def notific_new_order(email, order_id, **kwargs):
     print(f"УВЕДОМЛЯЕМ ВАС О РАЗМЕЩЕНИИ ВАШЕГО ЗАКАЗА ПОД НОМЕРОМ - {order_id}")
 
 
-def notific_new_state_order(client_id, order_id, state, **kwargs):
+def notific_new_state_order(client, order_id, state, **kwargs):
     """
     отправяем письмо при изменении статуса заказа
     """
-    email = Client.objects.get(id=client_id).email
-
+    
     # send_mail(
     #     "ИЗМЕНЕНИЕ СТАТУСА ЗАКАЗА",
     #     f"УВЕДОМЛЯЕМ ВАС ОБ ИЗМЕНЕНИИ СТАТУСА ВАШЕГО ЗАКАЗА ПОД НОМЕРОМ - {id_order}. НОВЫЙ СТАТУС - {state}",
     #     "from@example.com",
-    #     [f"{email}"],
+    #     [f"{client.email}"],
     #     fail_silently=False,
     # )
 
