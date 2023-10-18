@@ -62,7 +62,7 @@ def notific_delete_profile(email, username):
     print(f"УВЕДОМЛЯЕМ ВАС ОБ УДАЛЕНИИ ВАШЕГО АККАУНТА {username}")
 
 
-def notific_new_order(email, order_id, **kwargs):
+def notific_new_order(email, order_id):
     """
     отправяем письмо при размещении заказа
     """
@@ -77,11 +77,11 @@ def notific_new_order(email, order_id, **kwargs):
     print(f"УВЕДОМЛЯЕМ ВАС О РАЗМЕЩЕНИИ ВАШЕГО ЗАКАЗА ПОД НОМЕРОМ - {order_id}")
 
 
-def notific_new_state_order(client, order_id, state, **kwargs):
+def notific_new_state_order(client, order_id, state):
     """
     отправяем письмо при изменении статуса заказа
     """
-    
+
     # send_mail(
     #     "ИЗМЕНЕНИЕ СТАТУСА ЗАКАЗА",
     #     f"УВЕДОМЛЯЕМ ВАС ОБ ИЗМЕНЕНИИ СТАТУСА ВАШЕГО ЗАКАЗА ПОД НОМЕРОМ - {id_order}. НОВЫЙ СТАТУС - {state}",

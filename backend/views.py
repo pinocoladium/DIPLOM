@@ -15,13 +15,11 @@ from backend.auth import check_password, generate_password, hash_password
 from backend.models import (Category, Client, ConfirmEmailToken, Contact,
                             Order, OrderItem, Parameter, Product, ProductInfo,
                             ProductParameter, Shop)
-from backend.notifications import (email_confirmation, notific_delete_profile,
-                                   notific_new_order, notific_new_state_order,
-                                   reset_password_created)
 from backend.serializers import (CategorySerializer, ClientSerializer,
                                  ContactsSerializer, OrderItemSerializer,
                                  OrderSerializer, ProductInfoSerializer,
-                                 ShopSerializer, ShopAllSerializer)
+                                 ShopAllSerializer, ShopSerializer)
+from backend.tasks import send_note
 
 
 class ProfileClient(APIView):
@@ -59,7 +57,7 @@ class ProfileClient(APIView):
                     return Response({"Status": False, "Errors": str(error)})
                 else:
                     Client.objects.filter(id=client.id).update(password=hashed_password)
-                    email_confirmation(client.email, client.id)
+                    send_note.delay("email_confirmation", (client.email, client.id))
                     return Response(
                         {"status": True, "email": client.email, "password": password}
                     )
@@ -73,7 +71,9 @@ class ProfileClient(APIView):
         if request.user.is_authenticated:
             client = Client.objects.get(id=request.user.id)
             if "email" in request.data.keys() and request.data["email"] != client.email:
-                email_confirmation(request.data["email"], client.id)
+                send_note.delay(
+                    "email_confirmation", (request.data["email"], client.id)
+                )
                 request.data["is_active"] = False
             if "is_active" in request.data.keys():
                 request.data["is_active"] = client.is_active
@@ -98,18 +98,25 @@ class ProfileClient(APIView):
     def delete(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
-                if request.data and "password" in request.data.keys() and request.data["password"]:
+                if (
+                    request.data
+                    and "password" in request.data.keys()
+                    and request.data["password"]
+                ):
                     if check_password(request.data["password"], request.user.password):
-                        notific_delete_profile(request.user.email, request.user.username)
+                        send_note.delay(
+                            "notific_delete_profile",
+                            (request.user.email, request.user.username),
+                        )
                         Client.objects.filter(id=request.user.id).delete()
                         return Response({"Status": True, "info": "Профиль удален"})
                     return Response({"Status": False, "Error": "Неверный пароль"})
                 return Response(
-                        {
-                            "Status": False,
-                            "Errors": "Не указаны все необходимые данные (password)",
-                        }
-                    )
+                    {
+                        "Status": False,
+                        "Errors": "Не указаны все необходимые данные (password)",
+                    }
+                )
             return Response(
                 {
                     "Status": False,
@@ -130,7 +137,9 @@ class ConfirmEmail(APIView):
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == False:
-                email_confirmation(request.user.email, request.user.id)
+                send_note.delay(
+                    "email_confirmation", (request.user.email, request.user.id)
+                )
                 return Response(
                     {
                         "Status": True,
@@ -152,7 +161,9 @@ class ConfirmEmail(APIView):
                     token.created_at + datetime.timedelta(hours=24)
                     <= datetime.datetime.now()
                 ):
-                    email_confirmation(request.data["email"], client.id)
+                    send_note.delay(
+                        "email_confirmation", (request.data["email"], client.id)
+                    )
                     return Response(
                         {
                             "Status": False,
@@ -178,9 +189,7 @@ class ProfilContacts(APIView):
             if request.user.is_active == True:
                 contact = Contact.objects.filter(client=request.user.id)
                 if contact:
-                    return Response(
-                        ContactsSerializer(contact[0]).data
-                    )
+                    return Response(ContactsSerializer(contact[0]).data)
                 return Response(
                     {
                         "Status": False,
@@ -202,7 +211,7 @@ class ProfilContacts(APIView):
         if request.user.is_authenticated:
             if request.user.is_active == True:
                 if {"city", "street", "house", "phone"}.issubset(request.data):
-                    request.data['client'] = request.user.id
+                    request.data["client"] = request.user.id
                     contacts_serializers = ContactsSerializer(data=request.data)
                     if contacts_serializers.is_valid():
                         try:
@@ -215,7 +224,10 @@ class ProfilContacts(APIView):
                         {"Status": False, "Errors": contacts_serializers.errors}
                     )
                 return Response(
-                    {"Status": False, "Errors": "Не указаны все необходимые данные (city, street, house, phone)"}
+                    {
+                        "Status": False,
+                        "Errors": "Не указаны все необходимые данные (city, street, house, phone)",
+                    }
                 )
             return Response(
                 {
@@ -231,7 +243,7 @@ class ProfilContacts(APIView):
     def patch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
-                contact =Contact.objects.filter(client=request.user.id)
+                contact = Contact.objects.filter(client=request.user.id)
                 if contact:
                     contacts_serializers = ContactsSerializer(
                         contact[0], data=request.data, partial=True
@@ -283,7 +295,9 @@ class ProfilContacts(APIView):
 def reset_password_view(request, *args, **kwargs):
     if request.data:
         if Client.objects.filter(**request.data):
-            reset_password_created(Client.objects.get(**request.data).id)
+            send_note.delay(
+                "reset_password_created", (Client.objects.get(**request.data).id)
+            )
             return Response(
                 {
                     "Status": True,
@@ -446,13 +460,26 @@ class ProfileShop(APIView):
         if request.user.is_authenticated:
             if request.user.type == "shop":
                 if request.user.is_active:
-                    if request.data and "password" in request.data.keys() and request.data["password"]:
-                        if check_password(request.data["password"], request.user.password):
+                    if (
+                        request.data
+                        and "password" in request.data.keys()
+                        and request.data["password"]
+                    ):
+                        if check_password(
+                            request.data["password"], request.user.password
+                        ):
                             Shop.objects.filter(client=request.user.id).delete()
-                            Client.objects.filter(id=request.user.id).update(type="buyer")
+                            Client.objects.filter(id=request.user.id).update(
+                                type="buyer"
+                            )
                             return Response({"Status": True, "Info": "Магазин удален"})
                         return Response({"Status": False, "Error": "Неверный пароль"})
-                    return Response({"Status": False, "Error": "Не указаны все необходимые данные (password)"})
+                    return Response(
+                        {
+                            "Status": False,
+                            "Error": "Не указаны все необходимые данные (password)",
+                        }
+                    )
                 return Response(
                     {
                         "Status": False,
@@ -544,7 +571,8 @@ class ShopPricelist(APIView):
                             ProductInfo.objects.filter(shop=shop.id).delete()
                             for item in request.data["goods"]:
                                 product = Product.objects.get_or_create(
-                                    name=item["name"], category=Category.objects.get(id=item["category"])
+                                    name=item["name"],
+                                    category=Category.objects.get(id=item["category"]),
                                 )[0]
                                 product_info = ProductInfo.objects.create(
                                     product=product,
@@ -598,7 +626,9 @@ class ShopPricelist(APIView):
             if request.user.type == "shop":
                 if request.user.is_active == True:
                     if {"password"}.issubset(request.data) and request.data["password"]:
-                        if check_password(request.data["password"], request.user.password):
+                        if check_password(
+                            request.data["password"], request.user.password
+                        ):
                             shop = Shop.objects.get(client=request.user.id)
                             ProductInfo.objects.filter(shop=shop).delete()
                             return Response(
@@ -606,11 +636,11 @@ class ShopPricelist(APIView):
                             )
                         return Response({"Status": False, "Error": "Неверный пароль"})
                     return Response(
-                            {
-                                "Status": False,
-                                "Errors": "Не указаны все необходимые данные (password)",
-                            }
-                        )
+                        {
+                            "Status": False,
+                            "Errors": "Не указаны все необходимые данные (password)",
+                        }
+                    )
                 return Response(
                     {
                         "Status": False,
@@ -630,7 +660,12 @@ class ProductsViewSet(ModelViewSet):
     queryset = ProductInfo.objects.all()
     serializer_class = ProductInfoSerializer
     filter_backends = [SearchFilter]
-    search_fields = ["model", "product__name", "product_parameters__value", "product__category__name"]
+    search_fields = [
+        "model",
+        "product__name",
+        "product_parameters__value",
+        "product__category__name",
+    ]
     pagination_class = LimitOffsetPagination
 
 
@@ -691,14 +726,21 @@ class BasketView(APIView):
     def post(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
-                if {"items"}.issubset(request.data) and request.data["items"] and type(request.data["items"]) == list:
+                if (
+                    {"items"}.issubset(request.data)
+                    and request.data["items"]
+                    and type(request.data["items"]) == list
+                ):
                     objects_created = 0
                     client = Client.objects.get(id=request.user.id)
-                    basket = Order.objects.get_or_create(
-                        client=client, state="basket"
-                    )[0]
+                    basket = Order.objects.get_or_create(client=client, state="basket")[
+                        0
+                    ]
                     for items in request.data["items"]:
-                        if "product_info" in items.keys() and "quantity" in items.keys():
+                        if (
+                            "product_info" in items.keys()
+                            and "quantity" in items.keys()
+                        ):
                             if (
                                 type(items["product_info"]) == int
                                 and type(items["quantity"]) == int
@@ -716,25 +758,25 @@ class BasketView(APIView):
                                         objects_created += 1
                                 else:
                                     return Response(
-                                    {"Status": False, "Errors": serializer.errors}
-                                )
+                                        {"Status": False, "Errors": serializer.errors}
+                                    )
                             else:
                                 return Response(
-                                {"Status": False, "Errors": "Неверный тип данных"}
-                            )
+                                    {"Status": False, "Errors": "Неверный тип данных"}
+                                )
                         else:
                             return Response(
-                            {
-                                "Status": False,
-                                "Errors": "Не указаны все необходимые данные",
-                            }
-                        )
+                                {
+                                    "Status": False,
+                                    "Errors": "Не указаны все необходимые данные",
+                                }
+                            )
                     return Response(
                         {
                             "Status": True,
                             "Info": f"Создано объектов - {objects_created}",
                         }
-                    ) 
+                    )
                 return Response(
                     {"Status": False, "Errors": "Не указаны все необходимые данные"}
                 )
@@ -772,9 +814,7 @@ class BasketView(APIView):
                                 "Info": f"Удалено объектов - {deleted_count}",
                             }
                         )
-                    return Response(
-                            {"Status": False, "Errors": "Неверный тип данных"}
-                        )
+                    return Response({"Status": False, "Errors": "Неверный тип данных"})
                 return Response(
                     {"Status": False, "Errors": "Не указаны все необходимые данные"}
                 )
@@ -792,7 +832,11 @@ class BasketView(APIView):
     def patch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
-                if request.data and request.data["items"] and type(request.data["items"]) == list:
+                if (
+                    request.data
+                    and request.data["items"]
+                    and type(request.data["items"]) == list
+                ):
                     basket = Order.objects.filter(
                         client=request.user.id, state="basket"
                     )
@@ -809,13 +853,14 @@ class BasketView(APIView):
                             ).update(quantity=order_item["quantity"])
                         else:
                             return Response(
-                            {"Status": False, "Errors": "Неверный тип данных"}
-                        )
+                                {"Status": False, "Errors": "Неверный тип данных"}
+                            )
                     return Response(
-                                {
-                                    "Status": True,
-                                    "Info": f"Обновлено объектов - {objects_updated}",
-                                })
+                        {
+                            "Status": True,
+                            "Info": f"Обновлено объектов - {objects_updated}",
+                        }
+                    )
                 return Response(
                     {"Status": False, "Errors": "Не указаны все необходимые данные"}
                 )
@@ -856,7 +901,9 @@ class OrderBuyerView(APIView):
                     .distinct()
                 )
                 if not order:
-                    return Response({"Status": True, "Info": "Вы еще не успели сделать заказ"})
+                    return Response(
+                        {"Status": True, "Info": "Вы еще не успели сделать заказ"}
+                    )
                 serializer = OrderSerializer(order, many=True)
                 return Response(serializer.data)
             return Response(
@@ -874,7 +921,7 @@ class OrderBuyerView(APIView):
         if request.user.is_authenticated:
             if request.user.is_active == True:
                 contacts = Contact.objects.get(client=request.user.id)
-                order = Order.objects.filter(client=request.user.id, state = "basket")
+                order = Order.objects.filter(client=request.user.id, state="basket")
                 if order:
                     try:
                         order.update(contact=contacts, state="new")
@@ -882,7 +929,9 @@ class OrderBuyerView(APIView):
                         return Response({"Status": False, "Errors": str(error)})
                     else:
                         if order:
-                            notific_new_order(request.user.email, order[0].id)
+                            send_note.delay(
+                                "notific_new_order", (request.user.email, order[0].id)
+                            )
                             return Response({"Status": True, "Info": "Заказ размещен"})
                 return Response({"Status": True, "Info": "Ваша корзина пуста"})
             return Response(
@@ -953,7 +1002,7 @@ class OrderShopView(APIView):
                 if request.user.type == "shop":
                     if Shop.objects.get(client=request.user.id).state == True:
                         if (
-                            request.data 
+                            request.data
                             and request.data["items"]
                             and type(request.data["items"]) == list
                         ):
@@ -964,10 +1013,11 @@ class OrderShopView(APIView):
                                     and type(items["id"]) == int
                                     and type(items["state"]) == str
                                 ):
-                                    if "basket" not in items["state"] and "new" not in items["state"]:
-                                        order = Order.objects.filter(
-                                                id=items["id"]
-                                            )
+                                    if (
+                                        "basket" not in items["state"]
+                                        and "new" not in items["state"]
+                                    ):
+                                        order = Order.objects.filter(id=items["id"])
                                         try:
                                             order.update(state=items["state"])
                                         except IntegrityError as error:
@@ -976,10 +1026,13 @@ class OrderShopView(APIView):
                                             )
                                         else:
                                             if order:
-                                                notific_new_state_order(
-                                                    order[0].client,
-                                                    order[0].id,
-                                                    items["state"],
+                                                send_note.delay(
+                                                    "notific_new_state_order",
+                                                    (
+                                                        order[0].client,
+                                                        order[0].id,
+                                                        items["state"],
+                                                    ),
                                                 )
                                                 return Response(
                                                     {

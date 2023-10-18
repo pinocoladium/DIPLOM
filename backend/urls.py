@@ -1,6 +1,6 @@
 from rest_framework.routers import DefaultRouter
 
-from backend.views import ProductsViewSet, CategoryView, ShopView
+from backend.views import CategoryView, ProductsViewSet, ShopView
 
 router = DefaultRouter()
 router.register("all", ProductsViewSet)

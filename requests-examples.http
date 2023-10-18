@@ -13,8 +13,8 @@ Content-Type: application/json
 {
   "first_name": "Andrey",
   "last_name": "Minin",
-  "username": "MininAndr",
-  "email": "MininCom@gmail.com",
+  "username": "MininAndrey35",
+  "email": "MininComp35@gmail.com",
   "company": "MininCom",
   "position": "Director"
 }
