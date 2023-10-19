@@ -13,13 +13,12 @@ from rest_framework.viewsets import ModelViewSet
 
 from backend.auth import check_password, generate_password, hash_password
 from backend.models import (Category, Client, ConfirmEmailToken, Contact,
-                            Order, OrderItem, Parameter, Product, ProductInfo,
-                            ProductParameter, Shop)
+                            Order, OrderItem, ProductInfo, Shop)
 from backend.serializers import (CategorySerializer, ClientSerializer,
                                  ContactsSerializer, OrderItemSerializer,
                                  OrderSerializer, ProductInfoSerializer,
                                  ShopAllSerializer, ShopSerializer)
-from backend.tasks import send_note
+from backend.tasks import celery_send_note, celery_import_pricelist
 
 
 class ProfileClient(APIView):
@@ -57,7 +56,7 @@ class ProfileClient(APIView):
                     return Response({"Status": False, "Errors": str(error)})
                 else:
                     Client.objects.filter(id=client.id).update(password=hashed_password)
-                    send_note.delay("email_confirmation", (client.email, client.id))
+                    celery_send_note.delay("email_confirmation", (client.email, client.id))
                     return Response(
                         {"status": True, "email": client.email, "password": password}
                     )
@@ -71,7 +70,7 @@ class ProfileClient(APIView):
         if request.user.is_authenticated:
             client = Client.objects.get(id=request.user.id)
             if "email" in request.data.keys() and request.data["email"] != client.email:
-                send_note.delay(
+                celery_send_note.delay(
                     "email_confirmation", (request.data["email"], client.id)
                 )
                 request.data["is_active"] = False
@@ -104,7 +103,7 @@ class ProfileClient(APIView):
                     and request.data["password"]
                 ):
                     if check_password(request.data["password"], request.user.password):
-                        send_note.delay(
+                        celery_send_note.delay(
                             "notific_delete_profile",
                             (request.user.email, request.user.username),
                         )
@@ -137,7 +136,7 @@ class ConfirmEmail(APIView):
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == False:
-                send_note.delay(
+                celery_send_note.delay(
                     "email_confirmation", (request.user.email, request.user.id)
                 )
                 return Response(
@@ -161,7 +160,7 @@ class ConfirmEmail(APIView):
                     token.created_at + datetime.timedelta(hours=24)
                     <= datetime.datetime.now()
                 ):
-                    send_note.delay(
+                    celery_send_note.delay(
                         "email_confirmation", (request.data["email"], client.id)
                     )
                     return Response(
@@ -295,7 +294,7 @@ class ProfilContacts(APIView):
 def reset_password_view(request, *args, **kwargs):
     if request.data:
         if Client.objects.filter(**request.data):
-            send_note.delay(
+            celery_send_note.delay(
                 "reset_password_created", (Client.objects.get(**request.data).id)
             )
             return Response(
@@ -561,40 +560,17 @@ class ShopPricelist(APIView):
                     shop = Shop.objects.get(client=request.user.id)
                     if shop.state == True:
                         if {"categories", "goods"}.issubset(request.data):
-                            for category in request.data["categories"]:
-                                category_object = Category.objects.get_or_create(
-                                    id=category["id"],
-                                    name=category["name"],
-                                )[0]
-                                category_object.shop.add(shop.id)
-                                category_object.save()
-                            ProductInfo.objects.filter(shop=shop.id).delete()
-                            for item in request.data["goods"]:
-                                product = Product.objects.get_or_create(
-                                    name=item["name"],
-                                    category=Category.objects.get(id=item["category"]),
-                                )[0]
-                                product_info = ProductInfo.objects.create(
-                                    product=product,
-                                    external_id=item["id"],
-                                    model=item["model"],
-                                    price=item["price"],
-                                    price_rrc=item["price_rrc"],
-                                    quantity=item["quantity"],
-                                    shop=shop,
+                            if type(request.data["categories"]) == list and type(request.data["goods"]) == list:
+                                celery_import_pricelist.delay(request.data, shop.id, request.user.email)
+                                return Response(
+                                    {"Status": True, "Info": "Список товаров отправлен на загрузку. Ожидайте сообщения на электронную почту"}
                                 )
-                                for name, value in item["parameters"].items():
-                                    parameter_object = Parameter.objects.get_or_create(
-                                        name=name
-                                    )[0]
-                                    ProductParameter.objects.create(
-                                        product_info=product_info,
-                                        parameter=parameter_object,
-                                        value=value,
-                                    )
                             return Response(
-                                {"Status": True, "Info": "Список товаров обновлен"}
-                            )
+                            {
+                                "Status": False,
+                                "Errors": "Неверный тип данных",
+                            }
+                        )
                         return Response(
                             {
                                 "Status": False,
@@ -922,17 +898,17 @@ class OrderBuyerView(APIView):
             if request.user.is_active == True:
                 contacts = Contact.objects.get(client=request.user.id)
                 order = Order.objects.filter(client=request.user.id, state="basket")
+                order_id = order[0].id
                 if order:
                     try:
                         order.update(contact=contacts, state="new")
                     except IntegrityError as error:
                         return Response({"Status": False, "Errors": str(error)})
                     else:
-                        if order:
-                            send_note.delay(
-                                "notific_new_order", (request.user.email, order[0].id)
-                            )
-                            return Response({"Status": True, "Info": "Заказ размещен"})
+                        celery_send_note.delay(
+                            "notific_new_order", (request.user.email, order_id)
+                        )
+                        return Response({"Status": True, "Info": "Заказ размещен"})
                 return Response({"Status": True, "Info": "Ваша корзина пуста"})
             return Response(
                 {
@@ -1026,7 +1002,7 @@ class OrderShopView(APIView):
                                             )
                                         else:
                                             if order:
-                                                send_note.delay(
+                                                celery_send_note.delay(
                                                     "notific_new_state_order",
                                                     (
                                                         order[0].client,

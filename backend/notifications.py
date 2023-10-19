@@ -64,7 +64,7 @@ def notific_delete_profile(email, username):
 
 def notific_new_order(email, order_id):
     """
-    отправяем письмо при размещении заказа
+    Отправить письмо при размещении заказа
     """
     # send_mail(
     #     "РАЗМЕЩЕНИЕ ЗАКАЗА",
@@ -79,7 +79,7 @@ def notific_new_order(email, order_id):
 
 def notific_new_state_order(client, order_id, state):
     """
-    отправяем письмо при изменении статуса заказа
+    Отправить письмо при изменении статуса заказа
     """
 
     # send_mail(
@@ -93,3 +93,32 @@ def notific_new_state_order(client, order_id, state):
     print(
         f"УВЕДОМЛЯЕМ ВАС ОБ ИЗМЕНЕНИИ СТАТУСА ВАШЕГО ЗАКАЗА ПОД НОМЕРОМ - {order_id}. НОВЫЙ СТАТУС - {state}"
     )
+
+
+def notific_import_pricelist(email, result, datetime):
+    """
+    Отправить письмо при завершении загрузки списка товаров
+    """
+    if result == True:
+        # send_mail(
+        #     "РАЗМЕЩЕНИЕ СПИСКА ТОВАРОВ",
+        #     f"УВЕДОМЛЯЕМ ВАС ОБ УСПЕШНОМ ЗАВЕРШЕНИИ ЗАГРУЗКИ СПИСКА ТОВАРОВ ВАШЕГО МАГАЗИНА. ВРЕМЯ ОКОНЧАНИЯ ЗАГРУЗКИ - {datetime}",
+        #     "from@example.com",
+        #     [f"{email}"],
+        #     fail_silently=False,
+        # )
+        
+        print(f"УВЕДОМЛЯЕМ ВАС ОБ УСПЕШНОМ ЗАВЕРШЕНИИ ЗАГРУЗКИ СПИСКА ТОВАРОВ ВАШЕГО МАГАЗИНА. ВРЕМЯ ОКОНЧАНИЯ ЗАГРУЗКИ - {datetime}")
+        return
+    
+    else:
+        # send_mail(
+        #     "РАЗМЕЩЕНИЕ СПИСКА ТОВАРОВ",
+        #     "УВЕДОМЛЯЕМ ВАС ОБ НЕУДАЧНОМ ЗАВЕРШЕНИИ ЗАГРУЗКИ СПИСКА ТОВАРОВ ВАШЕГО МАГАЗИНА. ОШИБКА - {result}",
+        #     "from@example.com",
+        #     [f"{email}"],
+        #     fail_silently=False,
+        # )
+
+        print(f"УВЕДОМЛЯЕМ ВАС ОБ НЕУДАЧНОМ ЗАВЕРШЕНИИ ЗАГРУЗКИ СПИСКА ТОВАРОВ ВАШЕГО МАГАЗИНА. ОШИБКА - {result}")
+        return
