@@ -12,13 +12,27 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
 from backend.auth import check_password, generate_password, hash_password
-from backend.models import (Category, Client, ConfirmEmailToken, Contact,
-                            Order, OrderItem, ProductInfo, Shop)
-from backend.serializers import (CategorySerializer, ClientSerializer,
-                                 ContactsSerializer, OrderItemSerializer,
-                                 OrderSerializer, ProductInfoSerializer,
-                                 ShopAllSerializer, ShopSerializer)
-from backend.tasks import celery_send_note, celery_import_pricelist
+from backend.models import (
+    Category,
+    Client,
+    ConfirmEmailToken,
+    Contact,
+    Order,
+    OrderItem,
+    ProductInfo,
+    Shop,
+)
+from backend.serializers import (
+    CategorySerializer,
+    ClientSerializer,
+    ContactsSerializer,
+    OrderItemSerializer,
+    OrderSerializer,
+    ProductInfoSerializer,
+    ShopAllSerializer,
+    ShopSerializer,
+)
+from backend.tasks import celery_import_pricelist, celery_send_note
 
 
 class ProfileClient(APIView):
@@ -30,7 +44,8 @@ class ProfileClient(APIView):
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             return Response(
-                ClientSerializer(Client.objects.get(id=request.user.id)).data
+                ClientSerializer(Client.objects.get(id=request.user.id)).data,
+                status=200,
             )
         return Response(
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
@@ -41,28 +56,38 @@ class ProfileClient(APIView):
         if {"first_name", "last_name", "email"}.issubset(request.data):
             if "type" in request.data.keys() and request.data["type"] == "shop":
                 return Response(
-                    {"Status": False, "Errors": "Создание магазина сейчас недоступно"}
+                    {"Status": False, "Errors": "Создание магазина сейчас недоступно"},
+                    status=403,
                 )
             if "is_active" in request.data.keys():
                 request.data["is_active"] = False
             if "password" not in request.data.keys():
-                password = generate_password()
-            hashed_password = hash_password(password)
+                request.data["password"] = generate_password()
+            hashed_password = hash_password(request.data["password"])
             client_serializer = ClientSerializer(data=request.data)
             if client_serializer.is_valid():
                 try:
                     client = client_serializer.save()
                 except IntegrityError as error:
-                    return Response({"Status": False, "Errors": str(error)})
+                    return Response({"Status": False, "Errors": str(error)}, status=200)
                 else:
                     Client.objects.filter(id=client.id).update(password=hashed_password)
-                    celery_send_note.delay("email_confirmation", (client.email, client.id))
-                    return Response(
-                        {"status": True, "email": client.email, "password": password}
+                    celery_send_note.delay(
+                        "email_confirmation", (client.email, client.id)
                     )
-            return Response({"Status": False, "Errors": client_serializer.errors})
+                    return Response(
+                        {
+                            "status": True,
+                            "email": client.email,
+                            "password": request.data["password"],
+                        },
+                        status=201,
+                    )
+            return Response(
+                {"Status": False, "Errors": client_serializer.errors}, status=200
+            )
         return Response(
-            {"Status": False, "Errors": "Не указаны все необходимые данные"}
+            {"Status": False, "Errors": "Не указаны все необходимые данные"}, status=200
         )
 
     # измененить данные профиля пользователя
@@ -85,10 +110,14 @@ class ProfileClient(APIView):
                 try:
                     client_serializer.save()
                 except IntegrityError as error:
-                    return Response({"Status": False, "Errors": str(error)})
+                    return Response({"Status": False, "Errors": str(error)}, status=200)
                 else:
-                    return Response({"Status": True, "info": "Изменения внесены"})
-            return Response({"Status": False, "Errors": client_serializer.errors})
+                    return Response(
+                        {"Status": True, "info": "Изменения внесены"}, status=201
+                    )
+            return Response(
+                {"Status": False, "Errors": client_serializer.errors}, status=200
+            )
         return Response(
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
@@ -108,19 +137,25 @@ class ProfileClient(APIView):
                             (request.user.email, request.user.username),
                         )
                         Client.objects.filter(id=request.user.id).delete()
-                        return Response({"Status": True, "info": "Профиль удален"})
-                    return Response({"Status": False, "Error": "Неверный пароль"})
+                        return Response(
+                            {"Status": True, "info": "Профиль удален"}, status=204
+                        )
+                    return Response(
+                        {"Status": False, "Error": "Неверный пароль"}, status=200
+                    )
                 return Response(
                     {
                         "Status": False,
                         "Errors": "Не указаны все необходимые данные (password)",
-                    }
+                    },
+                    status=200,
                 )
             return Response(
                 {
                     "Status": False,
                     "Error": "Необходимо сначала подтвердить адрес электронной почты",
-                }
+                },
+                status=200,
             )
         return Response(
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
@@ -143,9 +178,12 @@ class ConfirmEmail(APIView):
                     {
                         "Status": True,
                         "Info": "Письмо отправлено на Вашу электронную почту",
-                    }
+                    },
+                    status=200,
                 )
-            return Response({"Status": False, "Error": "Почта уже подтверждена"})
+            return Response(
+                {"Status": False, "Error": "Почта уже подтверждена"}, status=200
+            )
         return Response(
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
@@ -167,14 +205,23 @@ class ConfirmEmail(APIView):
                         {
                             "Status": False,
                             "Error": "Устаревший токен. На электронную почту отправлен другой",
-                        }
+                        },
+                        status=200,
                     )
                 if request.data["token"] == token.key:
                     Client.objects.filter(id=client.id).update(is_active=True)
-                    return Response({"Status": True, "Info": "Почта подтверждена"})
-                return Response({"Status": False, "Error": "Указанные неверные данные"})
-            return Response({"Status": False, "Error": "Почта уже подтверждена"})
-        return Response({"Status": False, "Error": "Не указан данные в запросе"})
+                    return Response(
+                        {"Status": True, "Info": "Почта подтверждена"}, status=200
+                    )
+                return Response(
+                    {"Status": False, "Error": "Указанные неверные данные"}, status=200
+                )
+            return Response(
+                {"Status": False, "Error": "Почта уже подтверждена"}, status=200
+            )
+        return Response(
+            {"Status": False, "Error": "Не указан данные в запросе"}, status=200
+        )
 
 
 class ProfilContacts(APIView):
@@ -188,18 +235,20 @@ class ProfilContacts(APIView):
             if request.user.is_active == True:
                 contact = Contact.objects.filter(client=request.user.id)
                 if contact:
-                    return Response(ContactsSerializer(contact[0]).data)
+                    return Response(ContactsSerializer(contact[0]).data, status=200)
                 return Response(
                     {
                         "Status": False,
                         "Error": "Контакты профиля не найдены",
-                    }
+                    },
+                    status=404,
                 )
             return Response(
                 {
                     "Status": False,
                     "Error": "Необходимо сначала подтвердить адрес электронной почты",
-                }
+                },
+                status=200,
             )
         return Response(
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
@@ -216,23 +265,30 @@ class ProfilContacts(APIView):
                         try:
                             contacts_serializers.save()
                         except IntegrityError as error:
-                            return Response({"Status": False, "Errors": str(error)})
+                            return Response(
+                                {"Status": False, "Errors": str(error)}, status=200
+                            )
                         else:
-                            return Response({"Status": True, "Info": "Данные внесены"})
+                            return Response(
+                                {"Status": True, "Info": "Данные внесены"}, status=201
+                            )
                     return Response(
-                        {"Status": False, "Errors": contacts_serializers.errors}
+                        {"Status": False, "Errors": contacts_serializers.errors},
+                        status=200,
                     )
                 return Response(
                     {
                         "Status": False,
                         "Errors": "Не указаны все необходимые данные (city, street, house, phone)",
-                    }
+                    },
+                    status=200,
                 )
             return Response(
                 {
                     "Status": False,
                     "Error": "Необходимо сначала подтвердить адрес электронной почты",
-                }
+                },
+                status=200,
             )
         return Response(
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
@@ -251,22 +307,28 @@ class ProfilContacts(APIView):
                         try:
                             contacts_serializers.save()
                         except IntegrityError as error:
-                            return Response({"Status": False, "Errors": str(error)})
+                            return Response(
+                                {"Status": False, "Errors": str(error)}, status=200
+                            )
                         else:
                             return Response(
-                                {"Status": True, "Info": "Изменения внесены"}
+                                {"Status": True, "Info": "Изменения внесены"},
+                                status=201,
                             )
                     return Response(
-                        {"Status": False, "Errors": contacts_serializers.errors}
+                        {"Status": False, "Errors": contacts_serializers.errors},
+                        status=200,
                     )
                 return Response(
-                    {"Status": False, "Error": "Контакты профиля не найдены"}
+                    {"Status": False, "Error": "Контакты профиля не найдены"},
+                    status=404,
                 )
             return Response(
                 {
                     "Status": False,
                     "Error": "Необходимо сначала подтвердить адрес электронной почты",
-                }
+                },
+                status=200,
             )
         return Response(
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
@@ -277,12 +339,15 @@ class ProfilContacts(APIView):
         if request.user.is_authenticated:
             if request.user.is_active == True:
                 Contact.objects.filter(client=request.user.id).delete()
-                return Response({"Status": True, "Info": "Контакты профиля удалены"})
+                return Response(
+                    {"Status": True, "Info": "Контакты профиля удалены"}, status=204
+                )
             return Response(
                 {
                     "Status": False,
                     "Error": "Необходимо сначала подтвердить адрес электронной почты",
-                }
+                },
+                status=200,
             )
         return Response(
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
@@ -293,22 +358,26 @@ class ProfilContacts(APIView):
 @api_view(["POST"])
 def reset_password_view(request, *args, **kwargs):
     if request.data:
-        if Client.objects.filter(**request.data):
+        client = Client.objects.filter(**request.data)
+        if client:
             celery_send_note.delay(
-                "reset_password_created", (Client.objects.get(**request.data).id)
+                "reset_password_created", (client[0].id)
             )
+            Token.objects.filter(user=client[0].id).delete()
             return Response(
                 {
                     "Status": True,
                     "Info": "Пароль для входа отправлен на электронную почту",
-                }
+                },
+                status=200,
             )
-        return Response({"status": False, "Error": "Аккаунт не найден"})
+        return Response({"status": False, "Error": "Аккаунт не найден"}, status=404)
     return Response(
         {
             "status": False,
             "Error": "Необходимо указать какие-нибудь данные о профиле (username, email)",
-        }
+        },
+        status=200,
     )
 
 
@@ -320,7 +389,9 @@ class LoginClient(APIView):
     # узнать статус аутентификации
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
-            return Response({"Status": True, "Info": "Вы прошли аутентификацию"})
+            return Response(
+                {"Status": True, "Info": "Вы прошли аутентификацию"}, status=200
+            )
         return Response(
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
@@ -339,9 +410,12 @@ class LoginClient(APIView):
                     "Status": True,
                     "Info": "Аутентификация прошла успешно",
                     "Token": str(token[0]),
-                }
+                },
+                status=200,
             )
-        return Response({"status": False, "Error": "Неверно введен логин или пароль"})
+        return Response(
+            {"status": False, "Error": "Неверно введен логин или пароль"}, status=200
+        )
 
 
 # деаутентификация
@@ -349,8 +423,12 @@ class LoginClient(APIView):
 def logout_view(request, *args, **kwargs):
     if request.user.is_authenticated:
         Token.objects.filter(user=Client.objects.get(id=request.user.id)).delete()
-        return Response({"status": True, "info": "Деаутентификация прошла успешно"})
-    return Response({"status": False, "Error": "Вы не проходили аутентификацию"})
+        return Response(
+            {"status": True, "info": "Деаутентификация прошла успешно"}, status=200
+        )
+    return Response(
+        {"status": False, "Error": "Вы не проходили аутентификацию"}, status=200
+    )
 
 
 class ProfileShop(APIView):
@@ -364,15 +442,17 @@ class ProfileShop(APIView):
             if request.user.type == "shop":
                 if request.user.is_active:
                     return Response(
-                        ShopSerializer(Shop.objects.get(client=request.user.id)).data
+                        ShopSerializer(Shop.objects.get(client=request.user.id)).data,
+                        status=200,
                     )
                 return Response(
                     {
                         "Status": False,
                         "Error": "Необходимо сначала подтвердить адрес электронной почты",
-                    }
+                    },
+                    status=200,
                 )
-            return Response({"Status": False, "Error": "Магазин не создан"})
+            return Response({"Status": False, "Error": "Магазин не создан"}, status=404)
         return Response(
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
@@ -389,7 +469,9 @@ class ProfileShop(APIView):
                             try:
                                 shop = shop_serializer.save()
                             except IntegrityError as error:
-                                return Response({"Status": False, "Errors": str(error)})
+                                return Response(
+                                    {"Status": False, "Errors": str(error)}, status=200
+                                )
                             else:
                                 Client.objects.filter(id=request.user.id).update(
                                     type="shop"
@@ -399,28 +481,33 @@ class ProfileShop(APIView):
                                         "status": True,
                                         "name shop": shop.name,
                                         "state": shop.state,
-                                    }
+                                    },
+                                    status=201,
                                 )
                         return Response(
-                            {"Status": False, "Errors": shop_serializer.errors}
+                            {"Status": False, "Errors": shop_serializer.errors},
+                            status=200,
                         )
                     return Response(
                         {
                             "Status": False,
                             "Errors": "Не указаны все необходимые данные (name)",
-                        }
+                        },
+                        status=200,
                     )
                 return Response(
                     {
                         "Status": False,
                         "Errors": "Нельзя создать более 1 магазина на аккаунт",
-                    }
+                    },
+                    status=200,
                 )
             return Response(
                 {
                     "Status": False,
                     "Errors": "Необходимо сначала подтвердить адрес электронной почты",
-                }
+                },
+                status=200,
             )
         return Response(
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
@@ -439,19 +526,25 @@ class ProfileShop(APIView):
                         try:
                             shop_serializer.save()
                         except IntegrityError as error:
-                            return Response({"Status": False, "Errors": str(error)})
+                            return Response(
+                                {"Status": False, "Errors": str(error)}, status=200
+                            )
                         else:
                             return Response(
-                                {"Status": True, "Info": "Изменения внесены"}
+                                {"Status": True, "Info": "Изменения внесены"},
+                                status=201,
                             )
-                    return Response({"Status": False, "Errors": shop_serializer.errors})
+                    return Response(
+                        {"Status": False, "Errors": shop_serializer.errors}, status=200
+                    )
                 return Response(
                     {
                         "Status": False,
                         "Error": "Необходимо сначала подтвердить адрес электронной почты",
-                    }
+                    },
+                    status=200,
                 )
-            return Response({"Status": False, "Error": "Магазин не создан"})
+            return Response({"Status": False, "Error": "Магазин не создан"}, status=200)
         return Response({"Status": False, "Error": "Нет аутентификации"}, status=401)
 
     # удалить профиль магазина
@@ -471,21 +564,27 @@ class ProfileShop(APIView):
                             Client.objects.filter(id=request.user.id).update(
                                 type="buyer"
                             )
-                            return Response({"Status": True, "Info": "Магазин удален"})
-                        return Response({"Status": False, "Error": "Неверный пароль"})
+                            return Response(
+                                {"Status": True, "Info": "Магазин удален"}, status=204
+                            )
+                        return Response(
+                            {"Status": False, "Error": "Неверный пароль"}, status=200
+                        )
                     return Response(
                         {
                             "Status": False,
                             "Error": "Не указаны все необходимые данные (password)",
-                        }
+                        },
+                        status=200,
                     )
                 return Response(
                     {
                         "Status": False,
                         "Error": "Необходимо сначала подтвердить адрес электронной почты",
-                    }
+                    },
+                    status=200,
                 )
-            return Response({"Status": False, "Error": "Магазин не создан"})
+            return Response({"Status": False, "Error": "Магазин не создан"}, status=404)
         return Response({"Status": False, "Error": "Нет аутентификации"}, status=401)
 
 
@@ -502,22 +601,25 @@ def state_change_view(request, *args, **kwargs):
                         {
                             "Status": True,
                             "Info": "Статус - неактивен",
-                        }
+                        },
+                        status=201,
                     )
                 shop.update(state=True)
                 return Response(
                     {
                         "Status": True,
                         "Info": "Статус - активен",
-                    }
+                    },
+                    status=201,
                 )
             return Response(
                 {
                     "Status": False,
                     "Error": "Необходимо сначала подтвердить адрес электронной почты",
-                }
+                },
+                status=200,
             )
-        return Response({"Status": False, "Error": "Только для магазинов"})
+        return Response({"Status": False, "Error": "Только для магазинов"}, status=403)
     return Response(
         {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
     )
@@ -538,12 +640,15 @@ class ShopPricelist(APIView):
                     if product_all:
                         serializer = ProductInfoSerializer(product_all, many=True)
                         return Response(serializer.data)
-                    return Response({"Status": False, "Errors": "Товары не найдены"})
+                    return Response(
+                        {"Status": False, "Error": "Товары не найдены"}, status=404
+                    )
                 return Response(
                     {
                         "Status": False,
                         "Error": "Только для магазинов с активным статусом",
-                    }
+                    },
+                    status=200,
                 )
             return Response(
                 {"Status": False, "Error": "Только для магазинов"}, status=403
@@ -560,34 +665,47 @@ class ShopPricelist(APIView):
                     shop = Shop.objects.get(client=request.user.id)
                     if shop.state == True:
                         if {"categories", "goods"}.issubset(request.data):
-                            if type(request.data["categories"]) == list and type(request.data["goods"]) == list:
-                                celery_import_pricelist.delay(request.data, shop.id, request.user.email)
+                            if (
+                                type(request.data["categories"]) == list
+                                and type(request.data["goods"]) == list
+                            ):
+                                celery_import_pricelist.delay(
+                                    request.data, shop.id, request.user.email
+                                )
                                 return Response(
-                                    {"Status": True, "Info": "Список товаров отправлен на загрузку. Ожидайте сообщения на электронную почту"}
+                                    {
+                                        "Status": True,
+                                        "Info": "Список товаров отправлен на загрузку. Ожидайте сообщения на электронную почту",
+                                    },
+                                    status=202,
                                 )
                             return Response(
-                            {
-                                "Status": False,
-                                "Errors": "Неверный тип данных",
-                            }
-                        )
+                                {
+                                    "Status": False,
+                                    "Errors": "Неверный тип данных",
+                                },
+                                status=200,
+                            )
                         return Response(
                             {
                                 "Status": False,
                                 "Errors": "Не указаны все необходимые данные",
-                            }
+                            },
+                            status=200,
                         )
                     return Response(
                         {
                             "Status": False,
                             "Error": "Только для магазинов с активным статусом",
-                        }
+                        },
+                        status=200,
                     )
                 return Response(
                     {
                         "Status": False,
                         "Error": "Необходимо сначала подтвердить адрес электронной почты",
-                    }
+                    },
+                    status=200,
                 )
             return Response(
                 {"Status": False, "Error": "Только для магазинов"}, status=403
@@ -608,20 +726,25 @@ class ShopPricelist(APIView):
                             shop = Shop.objects.get(client=request.user.id)
                             ProductInfo.objects.filter(shop=shop).delete()
                             return Response(
-                                {"Status": True, "info": "Список товаров удален"}
+                                {"Status": True, "Info": "Список товаров удален"},
+                                status=204,
                             )
-                        return Response({"Status": False, "Error": "Неверный пароль"})
+                        return Response(
+                            {"Status": False, "Error": "Неверный пароль"}, status=200
+                        )
                     return Response(
                         {
                             "Status": False,
                             "Errors": "Не указаны все необходимые данные (password)",
-                        }
+                        },
+                        status=200,
                     )
                 return Response(
                     {
                         "Status": False,
                         "Error": "Необходимо сначала подтвердить адрес электронной почты",
-                    }
+                    },
+                    status=200,
                 )
             return Response(
                 {"Status": False, "Error": "Только для магазинов"}, status=403
@@ -685,14 +808,17 @@ class BasketView(APIView):
                     .distinct()
                 )
                 if not basket:
-                    return Response({"Status": True, "Info": "Ваша корзина пуста"})
+                    return Response(
+                        {"Status": True, "Info": "Ваша корзина пуста"}, status=200
+                    )
                 serializer = OrderSerializer(basket, many=True)
-                return Response(serializer.data)
+                return Response(serializer.data, status=200)
             return Response(
                 {
                     "Status": False,
                     "Error": "Необходимо сначала подтвердить адрес электронной почты",
-                }
+                },
+                status=200,
             )
         return Response(
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
@@ -728,39 +854,46 @@ class BasketView(APIView):
                                         serializer.save()
                                     except IntegrityError as error:
                                         return Response(
-                                            {"Status": False, "Errors": str(error)}
+                                            {"Status": False, "Errors": str(error)},
+                                            status=200,
                                         )
                                     else:
                                         objects_created += 1
                                 else:
                                     return Response(
-                                        {"Status": False, "Errors": serializer.errors}
+                                        {"Status": False, "Errors": serializer.errors},
+                                        status=200,
                                     )
                             else:
                                 return Response(
-                                    {"Status": False, "Errors": "Неверный тип данных"}
+                                    {"Status": False, "Errors": "Неверный тип данных"},
+                                    status=200,
                                 )
                         else:
                             return Response(
                                 {
                                     "Status": False,
                                     "Errors": "Не указаны все необходимые данные",
-                                }
+                                },
+                                status=200,
                             )
                     return Response(
                         {
                             "Status": True,
                             "Info": f"Создано объектов - {objects_created}",
-                        }
+                        },
+                        status=200,
                     )
                 return Response(
-                    {"Status": False, "Errors": "Не указаны все необходимые данные"}
+                    {"Status": False, "Errors": "Не указаны все необходимые данные"},
+                    status=200,
                 )
             return Response(
                 {
                     "Status": False,
                     "Error": "Необходимо сначала подтвердить адрес электронной почты",
-                }
+                },
+                status=200,
             )
         return Response(
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
@@ -775,7 +908,9 @@ class BasketView(APIView):
                         client=request.user.id, state="basket"
                     )
                     if not basket:
-                        return Response({"Status": True, "Info": "Ваша корзина пуста"})
+                        return Response(
+                            {"Status": True, "Info": "Ваша корзина пуста"}, status=200
+                        )
                     query = Q()
                     objects_deleted = False
                     for id in request.data["id"]:
@@ -788,17 +923,22 @@ class BasketView(APIView):
                             {
                                 "Status": True,
                                 "Info": f"Удалено объектов - {deleted_count}",
-                            }
+                            },
+                            status=200,
                         )
-                    return Response({"Status": False, "Errors": "Неверный тип данных"})
+                    return Response(
+                        {"Status": False, "Errors": "Неверный тип данных"}, status=200
+                    )
                 return Response(
-                    {"Status": False, "Errors": "Не указаны все необходимые данные"}
+                    {"Status": False, "Errors": "Не указаны все необходимые данные"},
+                    status=200,
                 )
             return Response(
                 {
                     "Status": False,
                     "Error": "Необходимо сначала подтвердить адрес электронной почты",
-                }
+                },
+                status=200,
             )
         return Response(
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
@@ -817,7 +957,9 @@ class BasketView(APIView):
                         client=request.user.id, state="basket"
                     )
                     if not basket:
-                        return Response({"Status": True, "Info": "Ваша корзина пуста"})
+                        return Response(
+                            {"Status": True, "Info": "Ваша корзина пуста"}, status=200
+                        )
                     objects_updated = 0
                     for order_item in request.data["items"]:
                         if (
@@ -829,22 +971,26 @@ class BasketView(APIView):
                             ).update(quantity=order_item["quantity"])
                         else:
                             return Response(
-                                {"Status": False, "Errors": "Неверный тип данных"}
+                                {"Status": False, "Errors": "Неверный тип данных"},
+                                status=200,
                             )
                     return Response(
                         {
                             "Status": True,
                             "Info": f"Обновлено объектов - {objects_updated}",
-                        }
+                        },
+                        status=200,
                     )
                 return Response(
-                    {"Status": False, "Errors": "Не указаны все необходимые данные"}
+                    {"Status": False, "Errors": "Не указаны все необходимые данные"},
+                    status=200,
                 )
             return Response(
                 {
                     "Status": False,
                     "Error": "Необходимо сначала подтвердить адрес электронной почты",
-                }
+                },
+                status=200,
             )
         return Response(
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
@@ -878,15 +1024,17 @@ class OrderBuyerView(APIView):
                 )
                 if not order:
                     return Response(
-                        {"Status": True, "Info": "Вы еще не успели сделать заказ"}
+                        {"Status": True, "Info": "Вы еще не успели сделать заказ"},
+                        status=200,
                     )
                 serializer = OrderSerializer(order, many=True)
-                return Response(serializer.data)
+                return Response(serializer.data, status=200)
             return Response(
                 {
                     "Status": False,
                     "Error": "Необходимо сначала подтвердить адрес электронной почты",
-                }
+                },
+                status=200,
             )
         return Response(
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
@@ -896,25 +1044,36 @@ class OrderBuyerView(APIView):
     def post(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
-                contacts = Contact.objects.get(client=request.user.id)
+                contacts = Contact.objects.filter(client=request.user.id)
+                if not contacts:
+                    return Response(
+                            {"Status": False, "Error": "Для оформления заказа необходимо указать контакты"}, status=404
+                        )
                 order = Order.objects.filter(client=request.user.id, state="basket")
                 order_id = order[0].id
                 if order:
                     try:
-                        order.update(contact=contacts, state="new")
+                        order.update(contact=contacts[0], state="new")
                     except IntegrityError as error:
-                        return Response({"Status": False, "Errors": str(error)})
+                        return Response(
+                            {"Status": False, "Errors": str(error)}, status=200
+                        )
                     else:
                         celery_send_note.delay(
                             "notific_new_order", (request.user.email, order_id)
                         )
-                        return Response({"Status": True, "Info": "Заказ размещен"})
-                return Response({"Status": True, "Info": "Ваша корзина пуста"})
+                        return Response(
+                            {"Status": True, "Info": "Заказ размещен"}, status=200
+                        )
+                return Response(
+                    {"Status": True, "Info": "Ваша корзина пуста"}, status=200
+                )
             return Response(
                 {
                     "Status": False,
                     "Error": "Необходимо сначала подтвердить адрес электронной почты",
-                }
+                },
+                status=200,
             )
         return Response(
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
@@ -950,13 +1109,19 @@ class OrderShopView(APIView):
                             )
                             .distinct()
                         )
+                        if not order:
+                            return Response(
+                                {"Status": True, "Info": "Заказов нет"},
+                                status=200,
+                            )
                         serializer = OrderSerializer(order, many=True)
-                        return Response(serializer.data)
+                        return Response(serializer.data, status=200)
                     return Response(
                         {
                             "Status": False,
                             "Error": "Только для магазинов с активным статусом",
-                        }
+                        },
+                        status=200,
                     )
                 return Response(
                     {"Status": False, "Error": "Только для магазинов"}, status=403
@@ -965,7 +1130,8 @@ class OrderShopView(APIView):
                 {
                     "Status": False,
                     "Error": "Необходимо сначала подтвердить адрес электронной почты",
-                }
+                },
+                status=200,
             )
         return Response(
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
@@ -998,7 +1164,8 @@ class OrderShopView(APIView):
                                             order.update(state=items["state"])
                                         except IntegrityError as error:
                                             return Response(
-                                                {"Status": False, "Errors": str(error)}
+                                                {"Status": False, "Errors": str(error)},
+                                                status=200,
                                             )
                                         else:
                                             if order:
@@ -1014,28 +1181,33 @@ class OrderShopView(APIView):
                                                     {
                                                         "Status": True,
                                                         "Info": f"Статус изменен на - {items['state']}",
-                                                    }
+                                                    },
+                                                    status=200,
                                                 )
                                     return Response(
                                         {
                                             "Status": False,
                                             "Errors": "На указанный статус невозможно изменить",
-                                        }
+                                        },
+                                        status=200,
                                     )
                                 return Response(
-                                    {"Status": False, "Errors": "Неверный тип данных"}
+                                    {"Status": False, "Errors": "Неверный тип данных"},
+                                    status=200,
                                 )
                         return Response(
                             {
                                 "Status": False,
                                 "Errors": "Не указаны все необходимые данные",
-                            }
+                            },
+                            status=200,
                         )
                     return Response(
                         {
                             "Status": False,
                             "Error": "Только для магазинов с активным статусом",
-                        }
+                        },
+                        status=200,
                     )
                 return Response(
                     {"Status": False, "Error": "Только для магазинов"}, status=403
@@ -1044,7 +1216,8 @@ class OrderShopView(APIView):
                 {
                     "Status": False,
                     "Error": "Необходимо сначала подтвердить адрес электронной почты",
-                }
+                },
+                status=200,
             )
         return Response(
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401

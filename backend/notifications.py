@@ -107,10 +107,12 @@ def notific_import_pricelist(email, result, datetime):
         #     [f"{email}"],
         #     fail_silently=False,
         # )
-        
-        print(f"УВЕДОМЛЯЕМ ВАС ОБ УСПЕШНОМ ЗАВЕРШЕНИИ ЗАГРУЗКИ СПИСКА ТОВАРОВ ВАШЕГО МАГАЗИНА. ВРЕМЯ ОКОНЧАНИЯ ЗАГРУЗКИ - {datetime}")
+
+        print(
+            f"УВЕДОМЛЯЕМ ВАС ОБ УСПЕШНОМ ЗАВЕРШЕНИИ ЗАГРУЗКИ СПИСКА ТОВАРОВ ВАШЕГО МАГАЗИНА. ВРЕМЯ ОКОНЧАНИЯ ЗАГРУЗКИ - {datetime}"
+        )
         return
-    
+
     else:
         # send_mail(
         #     "РАЗМЕЩЕНИЕ СПИСКА ТОВАРОВ",
@@ -120,5 +122,7 @@ def notific_import_pricelist(email, result, datetime):
         #     fail_silently=False,
         # )
 
-        print(f"УВЕДОМЛЯЕМ ВАС ОБ НЕУДАЧНОМ ЗАВЕРШЕНИИ ЗАГРУЗКИ СПИСКА ТОВАРОВ ВАШЕГО МАГАЗИНА. ОШИБКА - {result}")
+        print(
+            f"УВЕДОМЛЯЕМ ВАС ОБ НЕУДАЧНОМ ЗАВЕРШЕНИИ ЗАГРУЗКИ СПИСКА ТОВАРОВ ВАШЕГО МАГАЗИНА. ОШИБКА - {result}"
+        )
         return

@@ -1,5 +1,6 @@
-import backend.notifications as note
 import datetime
+
+import backend.notifications as note
 from backend.import_view import import_pricelist
 from marketplace.celery import celery_app
 
@@ -22,8 +23,8 @@ def celery_send_note(name_function, args):
         note.notific_new_state_order(*args)
         return
 
+
 @celery_app.task
 def celery_import_pricelist(data, shop, email):
     result = import_pricelist(data, shop)
     note.notific_import_pricelist(email, result, datetime.datetime.now())
-        

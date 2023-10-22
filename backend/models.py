@@ -1,7 +1,10 @@
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.contrib.auth.password_validation import (
-    CommonPasswordValidator, MinimumLengthValidator, NumericPasswordValidator,
-    UserAttributeSimilarityValidator)
+    CommonPasswordValidator,
+    MinimumLengthValidator,
+    NumericPasswordValidator,
+    UserAttributeSimilarityValidator,
+)
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.core.validators import EmailValidator, URLValidator
 from django.db import models

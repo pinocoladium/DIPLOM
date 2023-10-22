@@ -13,8 +13,8 @@ Content-Type: application/json
 {
   "first_name": "Andrey",
   "last_name": "Minin",
-  "username": "MininAndrey",
-  "email": "MininComp@gmail.com",
+  "username": "MininAndrey11",
+  "email": "MininComp11@gmail.com",
   "company": "MininCom",
   "position": "Director"
 }
@@ -33,7 +33,7 @@ POST {{baseUrl}}/profile/email/
 Content-Type: application/json
 
 {
-  "email": "MininComp@gmail.com",
+  "email": "MininComp11@gmail.com",
   "token": "e17c9e8f4e8a132ba9cb2ed86f7d4f6d"
 }
 
@@ -44,15 +44,15 @@ POST {{baseUrl}}/login/
 Content-Type: application/json
 
 {
-  "email": "MininComp@gmail.com",
-  "password": "w9-{!,(S98"
+  "email": "MininComp11@gmail.com",
+  "password": "PSCO.p5Su&"
 }
 
 ###
 
 # проверка аутентификации клиента
 GET {{baseUrl}}/login/
-Authorization: Token 033276899522652bcd21931c942cce29c7514c22
+Authorization: Token 2fbd66b19d255e7ee25da92e3439be727f0bd5a7
 
 ###
 
@@ -82,12 +82,12 @@ Authorization: Token 033276899522652bcd21931c942cce29c7514c22
 ###
 
 # сброс пароля пользователя
-POST {{baseUrl}}/profile/reset_password/
+POST {{baseUrl}}/profile/password/
 Content-Type: application/json
-Authorization: Token 033276899522652bcd21931c942cce29c7514c22
+# Authorization: Token 033276899522652bcd21931c942cce29c7514c22
 
 {
-"username": "MininAndrey"
+"username": "MininAndrey11"
 }
 
 ###

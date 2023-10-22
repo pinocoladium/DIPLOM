@@ -17,26 +17,35 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
-from backend.views import (BasketView, ConfirmEmail, LoginClient,
-                           OrderBuyerView, OrderShopView, ProfilContacts,
-                           ProfileClient, ProfileShop, ShopPricelist,
-                           logout_view, reset_password_view, state_change_view)
+from backend.views import (
+    BasketView,
+    ConfirmEmail,
+    LoginClient,
+    OrderBuyerView,
+    OrderShopView,
+    ProfilContacts,
+    ProfileClient,
+    ProfileShop,
+    ShopPricelist,
+    logout_view,
+    reset_password_view,
+    state_change_view,
+)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("login/", LoginClient.as_view()),
-    path("logout/", logout_view),
-    path("profile/", ProfileClient.as_view()),
-    path("profile/email/", ConfirmEmail.as_view()),
-    path("profile/contacts/", ProfilContacts.as_view()),
-    path("profile/reset_password/", reset_password_view),
-    path("profile/basket/", BasketView.as_view()),
-    path("profile/basket/buy", OrderBuyerView.as_view()),
-    path("profile/shop/", ProfileShop.as_view()),
-    path("profile/shop/state/", state_change_view),
-    path("profile/shop/pricelist/", ShopPricelist.as_view()),
-    path("profile/shop/orders/", OrderShopView.as_view()),
+    path("login/", LoginClient.as_view(), name="login"),
+    path("logout/", logout_view, name="logout"),
+    path("profile/", ProfileClient.as_view(), name="profile"),
+    path("profile/email/", ConfirmEmail.as_view(), name="email"),
+    path("profile/contacts/", ProfilContacts.as_view(), name="contacts"),
+    path("profile/password/", reset_password_view, name="password"),
+    path("profile/basket/", BasketView.as_view(), name="basket"),
+    path("profile/basket/buy", OrderBuyerView.as_view(), name="buy"),
+    path("profile/shop/", ProfileShop.as_view(), name="shop"),
+    path("profile/shop/state/", state_change_view, name="state"),
+    path("profile/shop/pricelist/", ShopPricelist.as_view(), name="pricelist"),
+    path("profile/shop/orders/", OrderShopView.as_view(), name="orders"),
     path("products/", include("backend.urls")),
     path("products/", include("backend.urls")),
-    # path("products/{slug:slug}", include("backend.urls")),
 ]
