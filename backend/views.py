@@ -3,14 +3,14 @@ import datetime
 from django.contrib.auth import authenticate
 from django.db import IntegrityError
 from django.db.models import F, Q, Sum
+from rest_framework import status
 from rest_framework.authtoken.models import Token
-from rest_framework.decorators import api_view
 from rest_framework.filters import SearchFilter
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
-
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiExample
 from backend.auth import check_password, generate_password, hash_password
 from backend.models import (
     Category,
@@ -34,13 +34,30 @@ from backend.serializers import (
 )
 from backend.tasks import celery_import_pricelist, celery_send_note
 
-
+@extend_schema(tags=["Профиль пользователя сервиса"])
+@extend_schema_view(
+    get=extend_schema(
+            summary="Получение данных профиля",
+            description="Для получения данных профиля пользователя сервиса",
+        ),
+    post=extend_schema(
+            summary="Регистрация профиля",
+            description="Для регистрации нового профиля пользователя сервиса",
+        ),
+    patch=extend_schema(
+            summary="Изменение данных профиля",
+            description="Для изменения данных профиля пользователя сервиса",
+        ),
+    delete=extend_schema(
+            summary="Удаление профиля",
+            description="Для удаления профиля пользователя сервиса",
+        ),
+    
+    )
 class ProfileClient(APIView):
     """
-    Для управления профилем пользователя сервиса
+    Класс для работы с профилем пользователя сервиса
     """
-
-    # узнать данные профиля пользователя
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             return Response(
@@ -51,7 +68,6 @@ class ProfileClient(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
-    # зарегистрировать нового пользователя
     def post(self, request, *args, **kwargs):
         if {"first_name", "last_name", "email"}.issubset(request.data):
             if "type" in request.data.keys() and request.data["type"] == "shop":
@@ -90,7 +106,6 @@ class ProfileClient(APIView):
             {"Status": False, "Errors": "Не указаны все необходимые данные"}, status=200
         )
 
-    # измененить данные профиля пользователя
     def patch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             client = Client.objects.get(id=request.user.id)
@@ -122,7 +137,6 @@ class ProfileClient(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
-    # удалить профиль
     def delete(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
@@ -161,13 +175,21 @@ class ProfileClient(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
-
+@extend_schema(tags=["Профиль пользователя сервиса"])
+@extend_schema_view(
+    get=extend_schema(
+            summary="Повторная отправка токена на почту",
+            description="Для повторения отправки токена подтверждения на электронную почту пользователя сервиса",
+        ),
+    post=extend_schema(
+            summary="Подтверждение почты",
+            description="Для подтверждения токеном электронной почты пользователя сервиса",
+        )
+    )
 class ConfirmEmail(APIView):
     """
-    Для подтверждения адреса электронной почты
+    Класс для работы с подтверждением адреса электронной почты
     """
-
-    # повторить отправку токена подтверждения на электронную почту
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == False:
@@ -188,7 +210,6 @@ class ConfirmEmail(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
-    # подтвердить токеном электронную почту
     def post(self, request, *args, **kwargs):
         if "token" in request.data.keys() and request.data["token"]:
             client = Client.objects.get(email=request.data["email"])
@@ -223,13 +244,29 @@ class ConfirmEmail(APIView):
             {"Status": False, "Error": "Не указан данные в запросе"}, status=200
         )
 
-
+@extend_schema(tags=["Профиль пользователя сервиса"])
+@extend_schema_view(
+    get=extend_schema(
+            summary="Получение контактов профиля",
+            description="Для получения контактных данных профиля пользователя сервиса",
+        ),
+    post=extend_schema(
+            summary="Добавление контактов профиля",
+            description="Для указания контактных данных профиля пользователя сервиса",
+        ),
+    patch=extend_schema(
+            summary="Изменение контактов профиля",
+            description="Для изменения контактных данных профиля пользователя сервиса",
+        ),
+    delete=extend_schema(
+            summary="Удаление контактов профиля",
+            description="Для удаления контактных данных профиля пользователя сервиса",
+        )
+    )
 class ProfilContacts(APIView):
     """
-    Для работы с контактами профиля
+    Класс для работы с контактами профиля пользователя сервиса
     """
-
-    # узнать контакты профиля
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
@@ -254,7 +291,6 @@ class ProfilContacts(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
-    # указать контакты профиля
     def post(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
@@ -294,7 +330,6 @@ class ProfilContacts(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
-    # внести изменения в контакты профиля
     def patch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
@@ -334,7 +369,6 @@ class ProfilContacts(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
-    # удалить контакты профиля
     def delete(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
@@ -353,40 +387,55 @@ class ProfilContacts(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
+@extend_schema(tags=["Профиль пользователя сервиса"])
+@extend_schema_view(
+    post=extend_schema(
+            summary="Сброс пароля",
+            description="Для сброса пароля от профиля и отправки нового на электронную почту пользователя сервиса",
+        ))
+class ProfileResetpassword(APIView):
+    """
+    Класс для работы со сбросом пароля от профиля пользователя сервиса
+    """
+    def post(self, request, *args, **kwargs):
+        if request.data:
+            client = Client.objects.filter(**request.data)
+            if client:
+                celery_send_note.delay(
+                    "reset_password_created", (client[0].id)
+                )
+                Token.objects.filter(user=client[0].id).delete()
+                return Response(
+                    {
+                        "Status": True,
+                        "Info": "Пароль для входа отправлен на электронную почту",
+                    },
+                    status=200,
+                )
+            return Response({"status": False, "Error": "Аккаунт не найден"}, status=404)
+        return Response(
+            {
+                "status": False,
+                "Error": "Необходимо указать какие-нибудь данные о профиле (username, email)",
+            },
+            status=200,
+        )
 
-# сброс пароля
-@api_view(["POST"])
-def reset_password_view(request, *args, **kwargs):
-    if request.data:
-        client = Client.objects.filter(**request.data)
-        if client:
-            celery_send_note.delay(
-                "reset_password_created", (client[0].id)
-            )
-            Token.objects.filter(user=client[0].id).delete()
-            return Response(
-                {
-                    "Status": True,
-                    "Info": "Пароль для входа отправлен на электронную почту",
-                },
-                status=200,
-            )
-        return Response({"status": False, "Error": "Аккаунт не найден"}, status=404)
-    return Response(
-        {
-            "status": False,
-            "Error": "Необходимо указать какие-нибудь данные о профиле (username, email)",
-        },
-        status=200,
+@extend_schema(tags=["Профиль пользователя сервиса"])
+@extend_schema_view(
+    get=extend_schema(
+            summary="Статус аутентификации пользователя",
+            description="Для получения статуса аутентификации пользователя сервиса",
+        ),
+    post=extend_schema(
+            summary="Аутентификация пользователя",
+            description="Для аутентификации зарегистрированного пользователя сервиса",
+        )
     )
-
-
 class LoginClient(APIView):
     """
-    Для аутентификации зарегистрированного пользователя сервиса
+    Класс для работы с аутентификацией пользователей сервиса
     """
-
-    # узнать статус аутентификации
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             return Response(
@@ -396,7 +445,6 @@ class LoginClient(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
-    # аутентификация пользователя
     def post(self, request, *args, **kwargs):
         client = authenticate(
             request=request,
@@ -417,26 +465,50 @@ class LoginClient(APIView):
             {"status": False, "Error": "Неверно введен логин или пароль"}, status=200
         )
 
-
-# деаутентификация
-@api_view(["GET"])
-def logout_view(request, *args, **kwargs):
-    if request.user.is_authenticated:
-        Token.objects.filter(user=Client.objects.get(id=request.user.id)).delete()
-        return Response(
-            {"status": True, "info": "Деаутентификация прошла успешно"}, status=200
+@extend_schema(tags=["Профиль пользователя сервиса"])
+@extend_schema_view(
+    get=extend_schema(
+            summary="Деаутентификация пользователя",
+            description="Для деаутентификации аутентифицированного пользователя сервиса",
         )
-    return Response(
-        {"status": False, "Error": "Вы не проходили аутентификацию"}, status=200
     )
+class ProfileLogout(APIView):
+    """
+    Класс для работы с деаутентификацией пользователя сервиса
+    """
+    def get(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            Token.objects.filter(user=Client.objects.get(id=request.user.id)).delete()
+            return Response(
+                {"status": True, "info": "Деаутентификация прошла успешно"}, status=200
+            )
+        return Response(
+            {"status": False, "Error": "Вы не проходили аутентификацию"}, status=200
+        )
 
-
+@extend_schema(tags=["Профиль магазина"])
+@extend_schema_view(
+    get=extend_schema(
+            summary="Получение данных магазина",
+            description="Для получения данных профиля магазина пользователя сервиса",
+        ),
+    post=extend_schema(
+            summary="Регистрация магазина",
+            description="Для регистрации нового профиля магазина пользователя сервиса",
+        ),
+    patch=extend_schema(
+            summary="Изменение данных магазина",
+            description="Для изменения данных профиля магазина пользователя сервиса",
+        ),
+    delete=extend_schema(
+            summary="Удаление магазина",
+            description="Для удаления профиля магазина пользователя сервиса",
+        )
+    )
 class ProfileShop(APIView):
     """
-    Для управления профилем магазина сервиса
+    Класс для работы с профилем магазина пользователя сервиса
     """
-
-    # узнать данные профиля магазина
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.type == "shop":
@@ -457,7 +529,6 @@ class ProfileShop(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
-    # зарегистрировать новый магазин
     def post(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active:
@@ -513,7 +584,6 @@ class ProfileShop(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
-    # измененить данные профиля магазина
     def patch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.type == "shop":
@@ -547,7 +617,6 @@ class ProfileShop(APIView):
             return Response({"Status": False, "Error": "Магазин не создан"}, status=200)
         return Response({"Status": False, "Error": "Нет аутентификации"}, status=401)
 
-    # удалить профиль магазина
     def delete(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.type == "shop":
@@ -587,50 +656,70 @@ class ProfileShop(APIView):
             return Response({"Status": False, "Error": "Магазин не создан"}, status=404)
         return Response({"Status": False, "Error": "Нет аутентификации"}, status=401)
 
-
-# изменения статуса приема заказов (только для продавцов)
-@api_view(["GET"])
-def state_change_view(request, *args, **kwargs):
-    if request.user.is_authenticated:
-        if request.user.type == "shop":
-            if request.user.is_active == True:
-                shop = Shop.objects.filter(client=request.user.id)
-                if shop[0].state:
-                    shop.update(state=False)
+@extend_schema(tags=["Профиль магазина"])
+@extend_schema_view(
+    get=extend_schema(
+            summary="Изменение статуса приема заказов",
+            description="Для изменения статуса приема заказов профиля магазина пользователя сервиса",
+        )
+    )
+class ShopState(APIView):
+    """
+    Класс для работы со статусом приема заказов профиля магазина пользователя сервиса
+    """
+    def get(self,request, *args, **kwargs):
+        if request.user.is_authenticated:
+            if request.user.type == "shop":
+                if request.user.is_active == True:
+                    shop = Shop.objects.filter(client=request.user.id)
+                    if shop[0].state:
+                        shop.update(state=False)
+                        return Response(
+                            {
+                                "Status": True,
+                                "Info": "Статус - неактивен",
+                            },
+                            status=201,
+                        )
+                    shop.update(state=True)
                     return Response(
                         {
                             "Status": True,
-                            "Info": "Статус - неактивен",
+                            "Info": "Статус - активен",
                         },
                         status=201,
                     )
-                shop.update(state=True)
                 return Response(
                     {
-                        "Status": True,
-                        "Info": "Статус - активен",
+                        "Status": False,
+                        "Error": "Необходимо сначала подтвердить адрес электронной почты",
                     },
-                    status=201,
+                    status=200,
                 )
-            return Response(
-                {
-                    "Status": False,
-                    "Error": "Необходимо сначала подтвердить адрес электронной почты",
-                },
-                status=200,
-            )
-        return Response({"Status": False, "Error": "Только для магазинов"}, status=403)
-    return Response(
-        {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
+            return Response({"Status": False, "Error": "Только для магазинов"}, status=403)
+        return Response(
+            {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
+        )
+
+@extend_schema(tags=["Профиль магазина"])
+@extend_schema_view(
+    get=extend_schema(
+            summary="Просмотр списка товаров",
+            description="Для просмотра выставленного списка товаров профиля магазина пользователя сервиса",
+        ),
+    post=extend_schema(
+            summary="Загрузка списка товаров",
+            description="Для загрузки списка товаров профиля магазина пользователя сервиса",
+        ),
+    delete=extend_schema(
+            summary="Удаление списка товаров",
+            description="Для удаления выставленного списка товаров профиля магазина пользователя сервиса",
+        )
     )
-
-
 class ShopPricelist(APIView):
     """
-    Для просмотра собственного и загрузки списка товаров (только для продавцов)
+    Класс для работы со списком товаров профиля магазина пользователя сервиса
     """
-
-    # просмотр списка выставленных товаров (только для продавцов)
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.type == "shop":
@@ -657,7 +746,6 @@ class ShopPricelist(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
-    # загрузка списка товаров из формата json (только для продавцов)
     def post(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.type == "shop":
@@ -714,7 +802,6 @@ class ShopPricelist(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
-    # удаление списка выставленных товаров (только для продавцов)
     def delete(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.type == "shop":
@@ -753,9 +840,20 @@ class ShopPricelist(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
-
-# просмотр всех товаров на сервисе
+@extend_schema(tags=["Товары"])
+@extend_schema_view(
+    list=extend_schema(
+            summary="Просмотр всех товаров",
+            description="Для просмотра всех товаров выставленных на сервисе",
+        ),
+    retrieve=extend_schema(
+            summary="Просмотр товара",
+            description="Для просмотра данных конкретного товара выставленного на сервисе",
+        ))
 class ProductsViewSet(ModelViewSet):
+    """
+    Класс для работы с товарами выставленными на сервисе
+    """
     queryset = ProductInfo.objects.all()
     serializer_class = ProductInfoSerializer
     filter_backends = [SearchFilter]
@@ -766,30 +864,71 @@ class ProductsViewSet(ModelViewSet):
         "product__category__name",
     ]
     pagination_class = LimitOffsetPagination
+    http_method_names = http_method_names = ['get']
 
-
-# просмотр всех категорий
+@extend_schema(tags=["Товары"])
+@extend_schema_view(
+    list=extend_schema(
+            summary="Просмотр всех категорий",
+            description="Для просмотра всех категорий товаров выставленных на сервисе",
+        ),
+    retrieve=extend_schema(
+            summary="Просмотр категории",
+            description="Для просмотра конкретной категории товаров выставленных на сервисе",
+        ))
 class CategoryView(ModelViewSet):
+    """
+    Класс для работы с категориями товаров выставленных на сервисе
+    """
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     search_fields = ["name"]
     pagination_class = LimitOffsetPagination
+    http_method_names = http_method_names = ['get']
 
-
-# просмотр всех магазинов
+@extend_schema(tags=["Товары"])
+@extend_schema_view(
+    list=extend_schema(
+            summary="Просмотр всех магазинов",
+            description="Для просмотра всех магазинов на сервисе",
+        ),
+    retrieve=extend_schema(
+            summary="Просмотр конкретного магазина",
+            description="Для просмотра конкретного магазина на сервисе",
+        ))
 class ShopView(ModelViewSet):
+    """
+    Класс для работы с магазинами на сервисе
+    """
     queryset = Shop.objects.filter(state=True)
     serializer_class = ShopAllSerializer
     search_fields = ["name"]
     pagination_class = LimitOffsetPagination
+    http_method_names = http_method_names = ['get']
 
-
+@extend_schema(tags=["Профиль покупателя"])
+@extend_schema_view(
+    get=extend_schema(
+            summary="Получение корзины",
+            description="Для получения содержимого корзины пользователя сервиса",
+        ),
+    post=extend_schema(
+            summary="Добавление товара в корзину",
+            description="Для добавления товара в содержимое корзины пользователя сервиса",
+        ),
+    patch=extend_schema(
+            summary="Изменение количества товара в корзине",
+            description="Для изменения количества содержимого корзины пользователя сервиса",
+        ),
+    delete=extend_schema(
+            summary="Удаление товара из корзины",
+            description="Для удаления содержимого корзины пользователя сервиса",
+        )
+    )
 class BasketView(APIView):
     """
-    Класс для работы с корзиной пользователя
+    Класс для работы с корзиной пользователя сервиса
     """
-
-    # получить содержимое корзины
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
@@ -824,7 +963,6 @@ class BasketView(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
-    # # добавить в содержимое корзины
     def post(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
@@ -899,7 +1037,6 @@ class BasketView(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
-    # удалить товары из корзины
     def delete(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
@@ -944,7 +1081,6 @@ class BasketView(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
-    # редакатировать количество товаров в корзине
     def patch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
@@ -996,13 +1132,21 @@ class BasketView(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
-
+@extend_schema(tags=["Профиль покупателя"])
+@extend_schema_view(
+    get=extend_schema(
+            summary="Получение размещенных заказов",
+            description="Для получения размещенных заказов пользователем сервиса",
+        ),
+    post=extend_schema(
+            summary="Размещение заказа",
+            description="Для размещени заказов пользователем сервиса",
+        )
+    )
 class OrderBuyerView(APIView):
     """
-    Класс для получения и размешения заказов пользователями
+    Класс для работы с заказами для пользователей сервиса
     """
-
-    # получить мои заказы
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
@@ -1040,7 +1184,6 @@ class OrderBuyerView(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
-    # разместить заказ из корзины
     def post(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
@@ -1079,13 +1222,21 @@ class OrderBuyerView(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
-
+@extend_schema(tags=["Профиль магазина"])
+@extend_schema_view(
+    get=extend_schema(
+            summary="Получение заказов",
+            description="Для получения размещенных заказов пользователями сервиса",
+        ),
+    patch=extend_schema(
+            summary="Изменение статуса заказа",
+            description="Для изменения статуса размещенных заказов пользователями сервиса",
+        )
+    )
 class OrderShopView(APIView):
     """
-    Класс для работы с заказами (только для магазинов)
+    Класс для работы с заказами для профилей магазинов
     """
-
-    # получение заказов
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
@@ -1137,7 +1288,6 @@ class OrderShopView(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
-    # изменение статусов заказа
     def patch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:

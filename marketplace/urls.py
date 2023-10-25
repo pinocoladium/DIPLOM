@@ -15,6 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from django.urls import include, path
 
 from backend.views import (
@@ -27,25 +28,27 @@ from backend.views import (
     ProfileClient,
     ProfileShop,
     ShopPricelist,
-    logout_view,
-    reset_password_view,
-    state_change_view,
+    ProfileLogout,
+    ProfileResetpassword,
+    ShopState,
 )
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='docs'),
     path("login/", LoginClient.as_view(), name="login"),
-    path("logout/", logout_view, name="logout"),
+    path("logout/", ProfileLogout.as_view(), name="logout"),
     path("profile/", ProfileClient.as_view(), name="profile"),
     path("profile/email/", ConfirmEmail.as_view(), name="email"),
     path("profile/contacts/", ProfilContacts.as_view(), name="contacts"),
-    path("profile/password/", reset_password_view, name="password"),
-    path("profile/basket/", BasketView.as_view(), name="basket"),
-    path("profile/basket/buy", OrderBuyerView.as_view(), name="buy"),
-    path("profile/shop/", ProfileShop.as_view(), name="shop"),
-    path("profile/shop/state/", state_change_view, name="state"),
-    path("profile/shop/pricelist/", ShopPricelist.as_view(), name="pricelist"),
-    path("profile/shop/orders/", OrderShopView.as_view(), name="orders"),
+    path("profile/password/", ProfileResetpassword.as_view(), name="password"),
+    path("basket/", BasketView.as_view(), name="basket"),
+    path("basket/buy", OrderBuyerView.as_view(), name="buy"),
+    path("shop/profile/", ProfileShop.as_view(), name="shop"),
+    path("shop/profile/state/", ShopState.as_view(), name="state"),
+    path("shop/profile/pricelist/", ShopPricelist.as_view(), name="pricelist"),
+    path("shop/profile/orders/", OrderShopView.as_view(), name="orders"),
     path("products/", include("backend.urls")),
     path("products/", include("backend.urls")),
 ]

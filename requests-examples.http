@@ -154,14 +154,14 @@ Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 ###
 
 # узнать данные профиля магазина
-GET {{baseUrl}}/profile/shop/
+GET {{baseUrl}}/shop/profile/
 Content-Type: application/json
 Authorization: Token 033276899522652bcd21931c942cce29c7514c22
 
 ###
 
 # создать профиль магазина
-POST {{baseUrl}}/profile/shop/
+POST {{baseUrl}}/shop/profile/
 Content-Type: application/json
 Authorization: Token 033276899522652bcd21931c942cce29c7514c22
 
@@ -172,7 +172,7 @@ Authorization: Token 033276899522652bcd21931c942cce29c7514c22
 ###
 
 # редактировать профиль магазин
-PATCH {{baseUrl}}/profile/shop/
+PATCH {{baseUrl}}/shop/profile/
 Content-Type: application/json
 Authorization: Token 033276899522652bcd21931c942cce29c7514c22
 
@@ -183,7 +183,7 @@ Authorization: Token 033276899522652bcd21931c942cce29c7514c22
 ###
 
 # удалить профиль магазин
-DELETE {{baseUrl}}/profile/shop/
+DELETE {{baseUrl}}/shop/profile/
 Content-Type: application/json
 Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 
@@ -194,7 +194,7 @@ Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 ###
 
 # изменить статус приема заказов магазина
-GET {{baseUrl}}/profile/shop/state/
+GET {{baseUrl}}/shop/profile/state/
 Content-Type: application/json
 Authorization: Token 033276899522652bcd21931c942cce29c7514c22
 
@@ -202,7 +202,7 @@ Authorization: Token 033276899522652bcd21931c942cce29c7514c22
 ###
 
 # просмотр собственного списка выставленных товаров
-GET {{baseUrl}}/profile/shop/pricelist/
+GET {{baseUrl}}/shop/profile/pricelist/
 Content-Type: application/json
 Authorization: Token 033276899522652bcd21931c942cce29c7514c22
 
@@ -210,7 +210,7 @@ Authorization: Token 033276899522652bcd21931c942cce29c7514c22
 ###
 
 # загрузка списка товаров из json
-POST {{baseUrl}}/profile/shop/pricelist/
+POST {{baseUrl}}/shop/profile/pricelist/
 Content-Type: application/json
 Authorization: Token 033276899522652bcd21931c942cce29c7514c22
 
@@ -296,7 +296,7 @@ Authorization: Token 033276899522652bcd21931c942cce29c7514c22
 ###
 
 # удалить список товаров 
-DELETE {{baseUrl}}/profile/shop/pricelist/
+DELETE {{baseUrl}}/shop/profile/pricelist/
 Content-Type: application/json
 Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 
@@ -307,14 +307,14 @@ Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 ###
 
 # получение размещенных заказов
-GET {{baseUrl}}/profile/shop/orders/
+GET {{baseUrl}}/shop/profile/orders/
 Content-Type: application/json
 Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 
 ###
 
 # изменение статусов заказов
-PATCH {{baseUrl}}/profile/shop/orders/
+PATCH {{baseUrl}}/shop/profile/orders/
 Content-Type: application/json
 Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 
@@ -330,29 +330,29 @@ Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 ###
 
 # просмотр всех товаров
-GET {{baseUrl}}/products/all?search=
+GET {{baseUrl}}/products/all/?search=
 
 ###
 
 # просмотр всех категорий товаров
-GET {{baseUrl}}/products/category/all
+GET {{baseUrl}}/products/category/all/
 
 ###
 
 # просмотр всех магазинов
-GET {{baseUrl}}/products/shop/all
+GET {{baseUrl}}/products/shop/all/
 
 ###
 
 # просмотр корзины
-GET {{baseUrl}}/profile/basket/
+GET {{baseUrl}}/basket/
 Content-Type: application/json
 Authorization: Token 033276899522652bcd21931c942cce29c7514c22
 
 ###
 
 # добавить товар в корзину
-POST {{baseUrl}}/profile/basket/
+POST {{baseUrl}}/basket/
 Content-Type: application/json
 Authorization: Token 033276899522652bcd21931c942cce29c7514c22
 
@@ -361,7 +361,7 @@ Authorization: Token 033276899522652bcd21931c942cce29c7514c22
 ###
 
 # изменить количество товара в корзине
-PATCH {{baseUrl}}/profile/basket/
+PATCH {{baseUrl}}/basket/
 Content-Type: application/json
 Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 
@@ -370,7 +370,7 @@ Authorization: Token 263040f77f9a6c7e699180e9ec8f6feeac326852
 ###
 
 # удалить товар из корзины
-DELETE {{baseUrl}}/profile/basket/
+DELETE {{baseUrl}}/basket/
 Content-Type: application/json
 Authorization: Token 033276899522652bcd21931c942cce29c7514c22
 
@@ -379,14 +379,14 @@ Authorization: Token 033276899522652bcd21931c942cce29c7514c22
 ###
 
 # получить размещенные заказы
-GET {{baseUrl}}/profile/basket/buy
+GET {{baseUrl}}/basket/buy
 Content-Type: application/json
 Authorization: Token 033276899522652bcd21931c942cce29c7514c22
 
 ###
 
 # разместить заказ товаров из корзины
-POST {{baseUrl}}/profile/basket/buy
+POST {{baseUrl}}/basket/buy
 Content-Type: application/json
 Authorization: Token 033276899522652bcd21931c942cce29c7514c22
 

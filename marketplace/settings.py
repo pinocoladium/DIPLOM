@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "rest_framework",
     "backend",
+    
+    'drf_spectacular', 
 ]
 
 MIDDLEWARE = [
@@ -144,6 +146,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.TokenAuthentication",
     ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 REDIS_PORT = os.getenv("REDIS_PORT")
@@ -153,3 +156,13 @@ CELERY_RESULT_BACKEND = "redis://" + REDIS_HOST + ":" + REDIS_PORT
 CELERY_ACCEPT_CONTENT = ["application/json"]
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TASK_SERIALIZER = "json"
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "API 'MARKETPLACE'",
+    "VERSION": "0.0.1",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SWAGGER_UI_SETTINGS": {
+        "filter": True,
+    },
+    "COMPONENT_SPLIT_REQUEST": True
+}
