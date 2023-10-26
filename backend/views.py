@@ -5,12 +5,13 @@ from django.db import IntegrityError
 from django.db.models import F, Q, Sum
 from rest_framework import status
 from rest_framework.authtoken.models import Token
+from rest_framework.decorators import api_view
 from rest_framework.filters import SearchFilter
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
-from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiExample
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiExample, OpenApiResponse
 from backend.auth import check_password, generate_password, hash_password
 from backend.models import (
     Category,
@@ -34,26 +35,106 @@ from backend.serializers import (
 )
 from backend.tasks import celery_import_pricelist, celery_send_note
 
+
 @extend_schema(tags=["Профиль пользователя сервиса"])
 @extend_schema_view(
     get=extend_schema(
             summary="Получение данных профиля",
             description="Для получения данных профиля пользователя сервиса",
+            responses={status.HTTP_200_OK: OpenApiResponse(response=ClientSerializer, description="OK", examples=[
+                OpenApiExample(
+                    "Получение данных профиля",
+                    description="Успешное получение данных профиля",
+                    value=
+                    {   
+                        "id": "Ваш индивидуальный номер",
+                        "first_name": "Ваше имя",
+                        "last_name": "Ваша фамилия",
+                        "username": "Ваш логин",
+                        "email": "Ваша электронная почта",
+                        "company": " Ваша организация",
+                        "position": "ваша должность",
+                        "contacts": "Ваши контакты" 
+                    }
+                ),
+            ])
+            },
         ),
     post=extend_schema(
             summary="Регистрация профиля",
             description="Для регистрации нового профиля пользователя сервиса",
+            request=ClientSerializer,
+            examples=[
+                OpenApiExample(
+                    "Регистрация профиля",
+                    description="Все параметры обязательны, за исключением пароля. Пароль может быть сформирован сервисом при регистрации",
+                    value=
+                    {
+                        "first_name": "Ваше имя",
+                        "last_name": "Ваша фамилия",
+                        "username": "Ваш логин",
+                        "email": "Ваша электронная почта",
+                        "company": " Ваша организация",
+                        "position": "ваша должность",
+                        "password": "Ваш пароль"
+                    }
+                ),
+            ],
+            responses={status.HTTP_200_OK: OpenApiResponse(response=ClientSerializer, description="OK", examples=[
+                OpenApiExample(
+                    "Регистрация профиля",
+                    description="Успешное окончание регистрации. В ответе указаны данные для аутентификации",
+                    value=
+                    {
+                       "status": True,
+                        "email": "Ваш адрес электронной почты",
+                        "password": "Ваш пароль", 
+                    }
+                ),
+            ])
+            },
         ),
     patch=extend_schema(
             summary="Изменение данных профиля",
             description="Для изменения данных профиля пользователя сервиса",
+            request=ClientSerializer,
+            examples=[
+                OpenApiExample(
+                    "Изменение данных профиля",
+                    description="Все параметры необязательны, при смене почты будет выслан код для подтверждения",
+                    value=
+                    {
+                        "first_name": "Ваше измененное имя",
+                        "last_name": "Ваша измененная фамилия",
+                        "username": "Ваш измененный логин",
+                        "email": "Ваша измененная электронная почта",
+                        "company": " Ваша измененная организация",
+                        "position": "ваша измененная должность",
+                        "password": "Ваш измененный пароль"
+                    }
+                ),
+            ],
+            responses={status.HTTP_201_CREATED: OpenApiResponse(response=ClientSerializer, description="OK", examples=[
+                OpenApiExample(
+                    "Изменение данных профиля",
+                    description="Успешное окончание изменение данных профиля",
+                    value={"Status": True, "info": "Изменения внесены"}
+                ),
+            ])
+            }
         ),
     delete=extend_schema(
             summary="Удаление профиля",
             description="Для удаления профиля пользователя сервиса",
-        ),
-    
-    )
+            responses={status.HTTP_204_NO_CONTENT: OpenApiResponse(response=ClientSerializer, description="УДАЛЕНО", examples=[
+                OpenApiExample(
+                    "Удаление профиля",
+                    description="Успешное удаление профиля",
+                    value={"Status": True, "info": "Профиль удален"}
+                ),
+            ])
+            }
+        ))
 class ProfileClient(APIView):
     """
     Класс для работы с профилем пользователя сервиса
@@ -175,7 +256,8 @@ class ProfileClient(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
-@extend_schema(tags=["Профиль пользователя сервиса"])
+
+@extend_schema(tags=["Подтверждение электронной почты"])
 @extend_schema_view(
     get=extend_schema(
             summary="Повторная отправка токена на почту",
@@ -243,6 +325,7 @@ class ConfirmEmail(APIView):
         return Response(
             {"Status": False, "Error": "Не указан данные в запросе"}, status=200
         )
+
 
 @extend_schema(tags=["Профиль пользователя сервиса"])
 @extend_schema_view(
@@ -387,41 +470,39 @@ class ProfilContacts(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
-@extend_schema(tags=["Профиль пользователя сервиса"])
-@extend_schema_view(
-    post=extend_schema(
-            summary="Сброс пароля",
-            description="Для сброса пароля от профиля и отправки нового на электронную почту пользователя сервиса",
-        ))
-class ProfileResetpassword(APIView):
-    """
-    Класс для работы со сбросом пароля от профиля пользователя сервиса
-    """
-    def post(self, request, *args, **kwargs):
-        if request.data:
-            client = Client.objects.filter(**request.data)
-            if client:
-                celery_send_note.delay(
-                    "reset_password_created", (client[0].id)
-                )
-                Token.objects.filter(user=client[0].id).delete()
-                return Response(
-                    {
-                        "Status": True,
-                        "Info": "Пароль для входа отправлен на электронную почту",
-                    },
-                    status=200,
-                )
-            return Response({"status": False, "Error": "Аккаунт не найден"}, status=404)
-        return Response(
-            {
-                "status": False,
-                "Error": "Необходимо указать какие-нибудь данные о профиле (username, email)",
-            },
-            status=200,
-        )
 
-@extend_schema(tags=["Профиль пользователя сервиса"])
+@extend_schema(tags=["Профиль пользователя сервиса"],
+            summary="Сброс пароля",
+            description="Для сброса пароля от профиля и отправки нового на электронную почту пользователя сервиса"
+)
+# сброс пароля
+@api_view(["GET"])
+def reset_password_view(request, *args, **kwargs):
+    if request.data:
+        client = Client.objects.filter(**request.data)
+        if client:
+            celery_send_note.delay(
+                "reset_password_created", (client[0].id)
+            )
+            Token.objects.filter(user=client[0].id).delete()
+            return Response(
+                {
+                    "Status": True,
+                    "Info": "Пароль для входа отправлен на электронную почту",
+                },
+                status=200,
+            )
+        return Response({"status": False, "Error": "Аккаунт не найден"}, status=404)
+    return Response(
+        {
+            "status": False,
+            "Error": "Необходимо указать какие-нибудь данные о профиле (username, email)",
+        },
+        status=200,
+    )
+
+
+@extend_schema(tags=["Аутентификация"])
 @extend_schema_view(
     get=extend_schema(
             summary="Статус аутентификации пользователя",
@@ -465,26 +546,23 @@ class LoginClient(APIView):
             {"status": False, "Error": "Неверно введен логин или пароль"}, status=200
         )
 
-@extend_schema(tags=["Профиль пользователя сервиса"])
-@extend_schema_view(
-    get=extend_schema(
+
+@extend_schema(tags=["Аутентификация"],
             summary="Деаутентификация пользователя",
-            description="Для деаутентификации аутентифицированного пользователя сервиса",
+            description="Для деаутентификации аутентифицированного пользователя сервиса"
         )
-    )
-class ProfileLogout(APIView):
-    """
-    Класс для работы с деаутентификацией пользователя сервиса
-    """
-    def get(self, request, *args, **kwargs):
-        if request.user.is_authenticated:
-            Token.objects.filter(user=Client.objects.get(id=request.user.id)).delete()
-            return Response(
-                {"status": True, "info": "Деаутентификация прошла успешно"}, status=200
-            )
+# деаутентификация
+@api_view(["GET"])
+def logout_view(request, *args, **kwargs):
+    if request.user.is_authenticated:
+        Token.objects.filter(user=Client.objects.get(id=request.user.id)).delete()
         return Response(
-            {"status": False, "Error": "Вы не проходили аутентификацию"}, status=200
+            {"status": True, "info": "Деаутентификация прошла успешно"}, status=200
         )
+    return Response(
+        {"status": False, "Error": "Вы не проходили аутентификацию"}, status=200
+    )
+
 
 @extend_schema(tags=["Профиль магазина"])
 @extend_schema_view(
@@ -656,50 +734,46 @@ class ProfileShop(APIView):
             return Response({"Status": False, "Error": "Магазин не создан"}, status=404)
         return Response({"Status": False, "Error": "Нет аутентификации"}, status=401)
 
-@extend_schema(tags=["Профиль магазина"])
-@extend_schema_view(
-    get=extend_schema(
+
+@extend_schema(tags=["Профиль магазина"], 
             summary="Изменение статуса приема заказов",
-            description="Для изменения статуса приема заказов профиля магазина пользователя сервиса",
-        )
-    )
-class ShopState(APIView):
-    """
-    Класс для работы со статусом приема заказов профиля магазина пользователя сервиса
-    """
-    def get(self,request, *args, **kwargs):
-        if request.user.is_authenticated:
-            if request.user.type == "shop":
-                if request.user.is_active == True:
-                    shop = Shop.objects.filter(client=request.user.id)
-                    if shop[0].state:
-                        shop.update(state=False)
-                        return Response(
-                            {
-                                "Status": True,
-                                "Info": "Статус - неактивен",
-                            },
-                            status=201,
-                        )
-                    shop.update(state=True)
+            description="Для изменения статуса приема заказов профиля магазина пользователя сервиса")
+# изменения статуса приема заказов (только для продавцов)
+@api_view(["GET"])
+def state_change_view(request, *args, **kwargs):
+    if request.user.is_authenticated:
+        if request.user.type == "shop":
+            if request.user.is_active == True:
+                shop = Shop.objects.filter(client=request.user.id)
+                if shop[0].state:
+                    shop.update(state=False)
                     return Response(
                         {
                             "Status": True,
-                            "Info": "Статус - активен",
+                            "Info": "Статус - неактивен",
                         },
                         status=201,
                     )
+                shop.update(state=True)
                 return Response(
                     {
-                        "Status": False,
-                        "Error": "Необходимо сначала подтвердить адрес электронной почты",
+                        "Status": True,
+                        "Info": "Статус - активен",
                     },
-                    status=200,
+                    status=201,
                 )
-            return Response({"Status": False, "Error": "Только для магазинов"}, status=403)
-        return Response(
-            {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
-        )
+            return Response(
+                {
+                    "Status": False,
+                    "Error": "Необходимо сначала подтвердить адрес электронной почты",
+                },
+                status=200,
+            )
+        return Response({"Status": False, "Error": "Только для магазинов"}, status=403)
+    return Response(
+        {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
+    )
+
 
 @extend_schema(tags=["Профиль магазина"])
 @extend_schema_view(
@@ -840,6 +914,7 @@ class ShopPricelist(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
+
 @extend_schema(tags=["Товары"])
 @extend_schema_view(
     list=extend_schema(
@@ -866,6 +941,7 @@ class ProductsViewSet(ModelViewSet):
     pagination_class = LimitOffsetPagination
     http_method_names = http_method_names = ['get']
 
+
 @extend_schema(tags=["Товары"])
 @extend_schema_view(
     list=extend_schema(
@@ -886,6 +962,7 @@ class CategoryView(ModelViewSet):
     pagination_class = LimitOffsetPagination
     http_method_names = http_method_names = ['get']
 
+
 @extend_schema(tags=["Товары"])
 @extend_schema_view(
     list=extend_schema(
@@ -905,6 +982,7 @@ class ShopView(ModelViewSet):
     search_fields = ["name"]
     pagination_class = LimitOffsetPagination
     http_method_names = http_method_names = ['get']
+
 
 @extend_schema(tags=["Профиль покупателя"])
 @extend_schema_view(
@@ -1132,6 +1210,7 @@ class BasketView(APIView):
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
 
+
 @extend_schema(tags=["Профиль покупателя"])
 @extend_schema_view(
     get=extend_schema(
@@ -1221,6 +1300,7 @@ class OrderBuyerView(APIView):
         return Response(
             {"Status": False, "Error": "Вы не прошли аутентификацию"}, status=401
         )
+
 
 @extend_schema(tags=["Профиль магазина"])
 @extend_schema_view(
