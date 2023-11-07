@@ -3,6 +3,8 @@ import datetime
 from django.contrib.auth import authenticate
 from django.db import IntegrityError
 from django.db.models import F, Q, Sum
+from drf_spectacular.utils import (OpenApiExample, OpenApiResponse,
+                                   extend_schema, extend_schema_view)
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view
@@ -11,134 +13,138 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
-from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiExample, OpenApiResponse
+
 from backend.auth import check_password, generate_password, hash_password
-from backend.models import (
-    Category,
-    Client,
-    ConfirmEmailToken,
-    Contact,
-    Order,
-    OrderItem,
-    ProductInfo,
-    Shop,
-)
-from backend.serializers import (
-    CategorySerializer,
-    ClientSerializer,
-    ContactsSerializer,
-    OrderItemSerializer,
-    OrderSerializer,
-    ProductInfoSerializer,
-    ShopAllSerializer,
-    ShopSerializer,
-)
+from backend.models import (Category, Client, ConfirmEmailToken, Contact,
+                            Order, OrderItem, ProductInfo, Shop)
+from backend.serializers import (CategorySerializer, ClientSerializer,
+                                 ContactsSerializer, OrderItemSerializer,
+                                 OrderSerializer, ProductInfoSerializer,
+                                 ShopAllSerializer, ShopSerializer)
 from backend.tasks import celery_import_pricelist, celery_send_note
 
 
 @extend_schema(tags=["Профиль пользователя сервиса"])
 @extend_schema_view(
     get=extend_schema(
-            summary="Получение данных профиля",
-            description="Для получения данных профиля пользователя сервиса",
-            responses={status.HTTP_200_OK: OpenApiResponse(response=ClientSerializer, description="OK", examples=[
-                OpenApiExample(
-                    "Получение данных профиля",
-                    description="Успешное получение данных профиля",
-                    value=
-                    {   
-                        "id": "Ваш индивидуальный номер",
-                        "first_name": "Ваше имя",
-                        "last_name": "Ваша фамилия",
-                        "username": "Ваш логин",
-                        "email": "Ваша электронная почта",
-                        "company": " Ваша организация",
-                        "position": "ваша должность",
-                        "contacts": "Ваши контакты" 
-                    }
-                ),
-            ])
-            },
-        ),
+        summary="Получение данных профиля",
+        description="Для получения данных профиля пользователя сервиса",
+        responses={
+            status.HTTP_200_OK: OpenApiResponse(
+                response=ClientSerializer,
+                description="OK",
+                examples=[
+                    OpenApiExample(
+                        "Получение данных профиля",
+                        description="Успешное получение данных профиля",
+                        value={
+                            "id": "Ваш индивидуальный номер",
+                            "first_name": "Ваше имя",
+                            "last_name": "Ваша фамилия",
+                            "username": "Ваш логин",
+                            "email": "Ваша электронная почта",
+                            "company": " Ваша организация",
+                            "position": "ваша должность",
+                            "contacts": "Ваши контакты",
+                        },
+                    ),
+                ],
+            )
+        },
+    ),
     post=extend_schema(
-            summary="Регистрация профиля",
-            description="Для регистрации нового профиля пользователя сервиса",
-            request=ClientSerializer,
-            examples=[
-                OpenApiExample(
-                    "Регистрация профиля",
-                    description="Все параметры обязательны, за исключением пароля. Пароль может быть сформирован сервисом при регистрации",
-                    value=
-                    {
-                        "first_name": "Ваше имя",
-                        "last_name": "Ваша фамилия",
-                        "username": "Ваш логин",
-                        "email": "Ваша электронная почта",
-                        "company": " Ваша организация",
-                        "position": "ваша должность",
-                        "password": "Ваш пароль"
-                    }
-                ),
-            ],
-            responses={status.HTTP_200_OK: OpenApiResponse(response=ClientSerializer, description="OK", examples=[
-                OpenApiExample(
-                    "Регистрация профиля",
-                    description="Успешное окончание регистрации. В ответе указаны данные для аутентификации",
-                    value=
-                    {
-                       "status": True,
-                        "email": "Ваш адрес электронной почты",
-                        "password": "Ваш пароль", 
-                    }
-                ),
-            ])
-            },
-        ),
+        summary="Регистрация профиля",
+        description="Для регистрации нового профиля пользователя сервиса",
+        request=ClientSerializer,
+        examples=[
+            OpenApiExample(
+                "Регистрация профиля",
+                description="Все параметры обязательны, за исключением пароля. Пароль может быть сформирован сервисом при регистрации",
+                value={
+                    "first_name": "Ваше имя",
+                    "last_name": "Ваша фамилия",
+                    "username": "Ваш логин",
+                    "email": "Ваша электронная почта",
+                    "company": " Ваша организация",
+                    "position": "ваша должность",
+                    "password": "Ваш пароль",
+                },
+            ),
+        ],
+        responses={
+            status.HTTP_200_OK: OpenApiResponse(
+                response=ClientSerializer,
+                description="OK",
+                examples=[
+                    OpenApiExample(
+                        "Регистрация профиля",
+                        description="Успешное окончание регистрации. В ответе указаны данные для аутентификации",
+                        value={
+                            "status": True,
+                            "email": "Ваш адрес электронной почты",
+                            "password": "Ваш пароль",
+                        },
+                    ),
+                ],
+            )
+        },
+    ),
     patch=extend_schema(
-            summary="Изменение данных профиля",
-            description="Для изменения данных профиля пользователя сервиса",
-            request=ClientSerializer,
-            examples=[
-                OpenApiExample(
-                    "Изменение данных профиля",
-                    description="Все параметры необязательны, при смене почты будет выслан код для подтверждения",
-                    value=
-                    {
-                        "first_name": "Ваше измененное имя",
-                        "last_name": "Ваша измененная фамилия",
-                        "username": "Ваш измененный логин",
-                        "email": "Ваша измененная электронная почта",
-                        "company": " Ваша измененная организация",
-                        "position": "ваша измененная должность",
-                        "password": "Ваш измененный пароль"
-                    }
-                ),
-            ],
-            responses={status.HTTP_201_CREATED: OpenApiResponse(response=ClientSerializer, description="OK", examples=[
-                OpenApiExample(
-                    "Изменение данных профиля",
-                    description="Успешное окончание изменение данных профиля",
-                    value={"Status": True, "info": "Изменения внесены"}
-                ),
-            ])
-            }
-        ),
+        summary="Изменение данных профиля",
+        description="Для изменения данных профиля пользователя сервиса",
+        request=ClientSerializer,
+        examples=[
+            OpenApiExample(
+                "Изменение данных профиля",
+                description="Все параметры необязательны, при смене почты будет выслан код для подтверждения",
+                value={
+                    "first_name": "Ваше измененное имя",
+                    "last_name": "Ваша измененная фамилия",
+                    "username": "Ваш измененный логин",
+                    "email": "Ваша измененная электронная почта",
+                    "company": " Ваша измененная организация",
+                    "position": "ваша измененная должность",
+                    "password": "Ваш измененный пароль",
+                },
+            ),
+        ],
+        responses={
+            status.HTTP_201_CREATED: OpenApiResponse(
+                response=ClientSerializer,
+                description="OK",
+                examples=[
+                    OpenApiExample(
+                        "Изменение данных профиля",
+                        description="Успешное окончание изменение данных профиля",
+                        value={"Status": True, "info": "Изменения внесены"},
+                    ),
+                ],
+            )
+        },
+    ),
     delete=extend_schema(
-            summary="Удаление профиля",
-            description="Для удаления профиля пользователя сервиса",
-            responses={status.HTTP_204_NO_CONTENT: OpenApiResponse(response=ClientSerializer, description="УДАЛЕНО", examples=[
-                OpenApiExample(
-                    "Удаление профиля",
-                    description="Успешное удаление профиля",
-                    value={"Status": True, "info": "Профиль удален"}
-                ),
-            ])
-            }
-        ))
+        summary="Удаление профиля",
+        description="Для удаления профиля пользователя сервиса",
+        responses={
+            status.HTTP_204_NO_CONTENT: OpenApiResponse(
+                response=ClientSerializer,
+                description="УДАЛЕНО",
+                examples=[
+                    OpenApiExample(
+                        "Удаление профиля",
+                        description="Успешное удаление профиля",
+                        value={"Status": True, "info": "Профиль удален"},
+                    ),
+                ],
+            )
+        },
+    ),
+)
 class ProfileClient(APIView):
     """
     Класс для работы с профилем пользователя сервиса
     """
+
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             return Response(
@@ -260,18 +266,19 @@ class ProfileClient(APIView):
 @extend_schema(tags=["Подтверждение электронной почты"])
 @extend_schema_view(
     get=extend_schema(
-            summary="Повторная отправка токена на почту",
-            description="Для повторения отправки токена подтверждения на электронную почту пользователя сервиса",
-        ),
+        summary="Повторная отправка токена на почту",
+        description="Для повторения отправки токена подтверждения на электронную почту пользователя сервиса",
+    ),
     post=extend_schema(
-            summary="Подтверждение почты",
-            description="Для подтверждения токеном электронной почты пользователя сервиса",
-        )
-    )
+        summary="Подтверждение почты",
+        description="Для подтверждения токеном электронной почты пользователя сервиса",
+    ),
+)
 class ConfirmEmail(APIView):
     """
     Класс для работы с подтверждением адреса электронной почты
     """
+
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == False:
@@ -330,26 +337,27 @@ class ConfirmEmail(APIView):
 @extend_schema(tags=["Профиль пользователя сервиса"])
 @extend_schema_view(
     get=extend_schema(
-            summary="Получение контактов профиля",
-            description="Для получения контактных данных профиля пользователя сервиса",
-        ),
+        summary="Получение контактов профиля",
+        description="Для получения контактных данных профиля пользователя сервиса",
+    ),
     post=extend_schema(
-            summary="Добавление контактов профиля",
-            description="Для указания контактных данных профиля пользователя сервиса",
-        ),
+        summary="Добавление контактов профиля",
+        description="Для указания контактных данных профиля пользователя сервиса",
+    ),
     patch=extend_schema(
-            summary="Изменение контактов профиля",
-            description="Для изменения контактных данных профиля пользователя сервиса",
-        ),
+        summary="Изменение контактов профиля",
+        description="Для изменения контактных данных профиля пользователя сервиса",
+    ),
     delete=extend_schema(
-            summary="Удаление контактов профиля",
-            description="Для удаления контактных данных профиля пользователя сервиса",
-        )
-    )
+        summary="Удаление контактов профиля",
+        description="Для удаления контактных данных профиля пользователя сервиса",
+    ),
+)
 class ProfilContacts(APIView):
     """
     Класс для работы с контактами профиля пользователя сервиса
     """
+
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
@@ -471,9 +479,10 @@ class ProfilContacts(APIView):
         )
 
 
-@extend_schema(tags=["Профиль пользователя сервиса"],
-            summary="Сброс пароля",
-            description="Для сброса пароля от профиля и отправки нового на электронную почту пользователя сервиса"
+@extend_schema(
+    tags=["Профиль пользователя сервиса"],
+    summary="Сброс пароля",
+    description="Для сброса пароля от профиля и отправки нового на электронную почту пользователя сервиса",
 )
 # сброс пароля
 @api_view(["GET"])
@@ -481,9 +490,7 @@ def reset_password_view(request, *args, **kwargs):
     if request.data:
         client = Client.objects.filter(**request.data)
         if client:
-            celery_send_note.delay(
-                "reset_password_created", (client[0].id)
-            )
+            celery_send_note.delay("reset_password_created", (client[0].id))
             Token.objects.filter(user=client[0].id).delete()
             return Response(
                 {
@@ -505,18 +512,19 @@ def reset_password_view(request, *args, **kwargs):
 @extend_schema(tags=["Аутентификация"])
 @extend_schema_view(
     get=extend_schema(
-            summary="Статус аутентификации пользователя",
-            description="Для получения статуса аутентификации пользователя сервиса",
-        ),
+        summary="Статус аутентификации пользователя",
+        description="Для получения статуса аутентификации пользователя сервиса",
+    ),
     post=extend_schema(
-            summary="Аутентификация пользователя",
-            description="Для аутентификации зарегистрированного пользователя сервиса",
-        )
-    )
+        summary="Аутентификация пользователя",
+        description="Для аутентификации зарегистрированного пользователя сервиса",
+    ),
+)
 class LoginClient(APIView):
     """
     Класс для работы с аутентификацией пользователей сервиса
     """
+
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             return Response(
@@ -547,10 +555,11 @@ class LoginClient(APIView):
         )
 
 
-@extend_schema(tags=["Аутентификация"],
-            summary="Деаутентификация пользователя",
-            description="Для деаутентификации аутентифицированного пользователя сервиса"
-        )
+@extend_schema(
+    tags=["Аутентификация"],
+    summary="Деаутентификация пользователя",
+    description="Для деаутентификации аутентифицированного пользователя сервиса",
+)
 # деаутентификация
 @api_view(["GET"])
 def logout_view(request, *args, **kwargs):
@@ -567,26 +576,27 @@ def logout_view(request, *args, **kwargs):
 @extend_schema(tags=["Профиль магазина"])
 @extend_schema_view(
     get=extend_schema(
-            summary="Получение данных магазина",
-            description="Для получения данных профиля магазина пользователя сервиса",
-        ),
+        summary="Получение данных магазина",
+        description="Для получения данных профиля магазина пользователя сервиса",
+    ),
     post=extend_schema(
-            summary="Регистрация магазина",
-            description="Для регистрации нового профиля магазина пользователя сервиса",
-        ),
+        summary="Регистрация магазина",
+        description="Для регистрации нового профиля магазина пользователя сервиса",
+    ),
     patch=extend_schema(
-            summary="Изменение данных магазина",
-            description="Для изменения данных профиля магазина пользователя сервиса",
-        ),
+        summary="Изменение данных магазина",
+        description="Для изменения данных профиля магазина пользователя сервиса",
+    ),
     delete=extend_schema(
-            summary="Удаление магазина",
-            description="Для удаления профиля магазина пользователя сервиса",
-        )
-    )
+        summary="Удаление магазина",
+        description="Для удаления профиля магазина пользователя сервиса",
+    ),
+)
 class ProfileShop(APIView):
     """
     Класс для работы с профилем магазина пользователя сервиса
     """
+
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.type == "shop":
@@ -735,9 +745,11 @@ class ProfileShop(APIView):
         return Response({"Status": False, "Error": "Нет аутентификации"}, status=401)
 
 
-@extend_schema(tags=["Профиль магазина"], 
-            summary="Изменение статуса приема заказов",
-            description="Для изменения статуса приема заказов профиля магазина пользователя сервиса")
+@extend_schema(
+    tags=["Профиль магазина"],
+    summary="Изменение статуса приема заказов",
+    description="Для изменения статуса приема заказов профиля магазина пользователя сервиса",
+)
 # изменения статуса приема заказов (только для продавцов)
 @api_view(["GET"])
 def state_change_view(request, *args, **kwargs):
@@ -778,22 +790,23 @@ def state_change_view(request, *args, **kwargs):
 @extend_schema(tags=["Профиль магазина"])
 @extend_schema_view(
     get=extend_schema(
-            summary="Просмотр списка товаров",
-            description="Для просмотра выставленного списка товаров профиля магазина пользователя сервиса",
-        ),
+        summary="Просмотр списка товаров",
+        description="Для просмотра выставленного списка товаров профиля магазина пользователя сервиса",
+    ),
     post=extend_schema(
-            summary="Загрузка списка товаров",
-            description="Для загрузки списка товаров профиля магазина пользователя сервиса",
-        ),
+        summary="Загрузка списка товаров",
+        description="Для загрузки списка товаров профиля магазина пользователя сервиса",
+    ),
     delete=extend_schema(
-            summary="Удаление списка товаров",
-            description="Для удаления выставленного списка товаров профиля магазина пользователя сервиса",
-        )
-    )
+        summary="Удаление списка товаров",
+        description="Для удаления выставленного списка товаров профиля магазина пользователя сервиса",
+    ),
+)
 class ShopPricelist(APIView):
     """
     Класс для работы со списком товаров профиля магазина пользователя сервиса
     """
+
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.type == "shop":
@@ -918,17 +931,19 @@ class ShopPricelist(APIView):
 @extend_schema(tags=["Товары"])
 @extend_schema_view(
     list=extend_schema(
-            summary="Просмотр всех товаров",
-            description="Для просмотра всех товаров выставленных на сервисе",
-        ),
+        summary="Просмотр всех товаров",
+        description="Для просмотра всех товаров выставленных на сервисе",
+    ),
     retrieve=extend_schema(
-            summary="Просмотр товара",
-            description="Для просмотра данных конкретного товара выставленного на сервисе",
-        ))
+        summary="Просмотр товара",
+        description="Для просмотра данных конкретного товара выставленного на сервисе",
+    ),
+)
 class ProductsViewSet(ModelViewSet):
     """
     Класс для работы с товарами выставленными на сервисе
     """
+
     queryset = ProductInfo.objects.all()
     serializer_class = ProductInfoSerializer
     filter_backends = [SearchFilter]
@@ -939,74 +954,79 @@ class ProductsViewSet(ModelViewSet):
         "product__category__name",
     ]
     pagination_class = LimitOffsetPagination
-    http_method_names = http_method_names = ['get']
+    http_method_names = http_method_names = ["get"]
 
 
 @extend_schema(tags=["Товары"])
 @extend_schema_view(
     list=extend_schema(
-            summary="Просмотр всех категорий",
-            description="Для просмотра всех категорий товаров выставленных на сервисе",
-        ),
+        summary="Просмотр всех категорий",
+        description="Для просмотра всех категорий товаров выставленных на сервисе",
+    ),
     retrieve=extend_schema(
-            summary="Просмотр категории",
-            description="Для просмотра конкретной категории товаров выставленных на сервисе",
-        ))
+        summary="Просмотр категории",
+        description="Для просмотра конкретной категории товаров выставленных на сервисе",
+    ),
+)
 class CategoryView(ModelViewSet):
     """
     Класс для работы с категориями товаров выставленных на сервисе
     """
+
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     search_fields = ["name"]
     pagination_class = LimitOffsetPagination
-    http_method_names = http_method_names = ['get']
+    http_method_names = http_method_names = ["get"]
 
 
 @extend_schema(tags=["Товары"])
 @extend_schema_view(
     list=extend_schema(
-            summary="Просмотр всех магазинов",
-            description="Для просмотра всех магазинов на сервисе",
-        ),
+        summary="Просмотр всех магазинов",
+        description="Для просмотра всех магазинов на сервисе",
+    ),
     retrieve=extend_schema(
-            summary="Просмотр конкретного магазина",
-            description="Для просмотра конкретного магазина на сервисе",
-        ))
+        summary="Просмотр конкретного магазина",
+        description="Для просмотра конкретного магазина на сервисе",
+    ),
+)
 class ShopView(ModelViewSet):
     """
     Класс для работы с магазинами на сервисе
     """
+
     queryset = Shop.objects.filter(state=True)
     serializer_class = ShopAllSerializer
     search_fields = ["name"]
     pagination_class = LimitOffsetPagination
-    http_method_names = http_method_names = ['get']
+    http_method_names = http_method_names = ["get"]
 
 
 @extend_schema(tags=["Профиль покупателя"])
 @extend_schema_view(
     get=extend_schema(
-            summary="Получение корзины",
-            description="Для получения содержимого корзины пользователя сервиса",
-        ),
+        summary="Получение корзины",
+        description="Для получения содержимого корзины пользователя сервиса",
+    ),
     post=extend_schema(
-            summary="Добавление товара в корзину",
-            description="Для добавления товара в содержимое корзины пользователя сервиса",
-        ),
+        summary="Добавление товара в корзину",
+        description="Для добавления товара в содержимое корзины пользователя сервиса",
+    ),
     patch=extend_schema(
-            summary="Изменение количества товара в корзине",
-            description="Для изменения количества содержимого корзины пользователя сервиса",
-        ),
+        summary="Изменение количества товара в корзине",
+        description="Для изменения количества содержимого корзины пользователя сервиса",
+    ),
     delete=extend_schema(
-            summary="Удаление товара из корзины",
-            description="Для удаления содержимого корзины пользователя сервиса",
-        )
-    )
+        summary="Удаление товара из корзины",
+        description="Для удаления содержимого корзины пользователя сервиса",
+    ),
+)
 class BasketView(APIView):
     """
     Класс для работы с корзиной пользователя сервиса
     """
+
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
@@ -1214,18 +1234,19 @@ class BasketView(APIView):
 @extend_schema(tags=["Профиль покупателя"])
 @extend_schema_view(
     get=extend_schema(
-            summary="Получение размещенных заказов",
-            description="Для получения размещенных заказов пользователем сервиса",
-        ),
+        summary="Получение размещенных заказов",
+        description="Для получения размещенных заказов пользователем сервиса",
+    ),
     post=extend_schema(
-            summary="Размещение заказа",
-            description="Для размещени заказов пользователем сервиса",
-        )
-    )
+        summary="Размещение заказа",
+        description="Для размещени заказов пользователем сервиса",
+    ),
+)
 class OrderBuyerView(APIView):
     """
     Класс для работы с заказами для пользователей сервиса
     """
+
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:
@@ -1269,8 +1290,12 @@ class OrderBuyerView(APIView):
                 contacts = Contact.objects.filter(client=request.user.id)
                 if not contacts:
                     return Response(
-                            {"Status": False, "Error": "Для оформления заказа необходимо указать контакты"}, status=404
-                        )
+                        {
+                            "Status": False,
+                            "Error": "Для оформления заказа необходимо указать контакты",
+                        },
+                        status=404,
+                    )
                 order = Order.objects.filter(client=request.user.id, state="basket")
                 order_id = order[0].id
                 if order:
@@ -1305,18 +1330,19 @@ class OrderBuyerView(APIView):
 @extend_schema(tags=["Профиль магазина"])
 @extend_schema_view(
     get=extend_schema(
-            summary="Получение заказов",
-            description="Для получения размещенных заказов пользователями сервиса",
-        ),
+        summary="Получение заказов",
+        description="Для получения размещенных заказов пользователями сервиса",
+    ),
     patch=extend_schema(
-            summary="Изменение статуса заказа",
-            description="Для изменения статуса размещенных заказов пользователями сервиса",
-        )
-    )
+        summary="Изменение статуса заказа",
+        description="Для изменения статуса размещенных заказов пользователями сервиса",
+    ),
+)
 class OrderShopView(APIView):
     """
     Класс для работы с заказами для профилей магазинов
     """
+
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if request.user.is_active == True:

@@ -1,13 +1,7 @@
 from django.db import IntegrityError
 
-from backend.models import (
-    Category,
-    Parameter,
-    Product,
-    ProductInfo,
-    ProductParameter,
-    Shop,
-)
+from backend.models import (Category, Parameter, Product, ProductInfo,
+                            ProductParameter, Shop)
 
 
 def import_pricelist(data, shop_id):

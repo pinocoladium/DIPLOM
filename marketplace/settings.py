@@ -45,8 +45,7 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "rest_framework",
     "backend",
-    
-    'drf_spectacular', 
+    "drf_spectacular",
 ]
 
 MIDDLEWARE = [
@@ -146,15 +145,12 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.TokenAuthentication",
     ),
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle'
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
     ],
-    'DEFAULT_THROTTLE_RATES': {
-        'anon': '10/minute',
-        'user': '40/minute'
-    }
+    "DEFAULT_THROTTLE_RATES": {"anon": "10/minute", "user": "40/minute"},
 }
 
 REDIS_PORT = os.getenv("REDIS_PORT")
@@ -172,5 +168,5 @@ SPECTACULAR_SETTINGS = {
     "SWAGGER_UI_SETTINGS": {
         "filter": True,
     },
-    "COMPONENT_SPLIT_REQUEST": True
+    "COMPONENT_SPLIT_REQUEST": True,
 }
