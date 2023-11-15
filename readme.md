@@ -21,7 +21,7 @@
 - в проекте реализовано генерирование документации и схемы посредством пакета drf-spectacular, поэтому по адресу api/docs/ можно просмотреть Swagger-UI документацию со списком всех возможных эндпоинтов, примерами запросов и ответов на них.
 - также в файле [requests-examples.http](https://github.com/pinocoladium/PET-MARKETPLACE/blob/main/requests-examples.http) продублированы примеры запросов.
 
-## Установка и запсук в тестовом формате:
+## Установка и запуск в тестовом формате:
 
 - pip install -r requirements.txt
 - docker-compose up

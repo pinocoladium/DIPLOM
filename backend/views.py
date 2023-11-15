@@ -954,7 +954,7 @@ class ProductsViewSet(ModelViewSet):
         "product__category__name",
     ]
     pagination_class = LimitOffsetPagination
-    http_method_names = http_method_names = ["get"]
+    http_method_names = ["get"]
 
 
 @extend_schema(tags=["Товары"])
@@ -977,7 +977,7 @@ class CategoryView(ModelViewSet):
     serializer_class = CategorySerializer
     search_fields = ["name"]
     pagination_class = LimitOffsetPagination
-    http_method_names = http_method_names = ["get"]
+    http_method_names = ["get"]
 
 
 @extend_schema(tags=["Товары"])
@@ -1000,7 +1000,7 @@ class ShopView(ModelViewSet):
     serializer_class = ShopAllSerializer
     search_fields = ["name"]
     pagination_class = LimitOffsetPagination
-    http_method_names = http_method_names = ["get"]
+    http_method_names = ["get"]
 
 
 @extend_schema(tags=["Профиль покупателя"])
